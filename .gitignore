@@ -1,0 +1,45 @@
+# Model checkpoints & weights
+results/
+*.pt
+*.bin
+*.safetensors
+*.ckpt
+
+# Data (downloaded by scripts/prepare_data.py)
+data/gsm8k/
+data/*.jsonl
+data/*.json
+data/raw/
+data/processed/
+
+# HuggingFace cache (can be huge)
+.cache/
+huggingface/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Experiment tracking
+wandb/
+*.log
+runs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
