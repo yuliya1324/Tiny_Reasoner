@@ -12,7 +12,7 @@ training:
   logging_steps: 10
   save_steps: 200
   eval_steps: 200
-  fp16: true
+  fp16: false
 
-output_dir: "/Data/iuliia.korotkova/Tiny_Reasoner/results/sft_baseline"
+output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/sft_baseline"
 experiment_name: sft_baseline
