@@ -19,9 +19,10 @@ python -m src.evaluation.evaluate --checkpoint <path_to_results_dir>/results/dpo
 ## DPO design
 ### DPO baseline
 Make wrong answers automatically.
-Rule:
-    - Integer: ±max(round(10%), 1)
-    - Decimal: ±max(10%, 0.1)
-    - Randomly choose + or -
-    - Fallback: append '_wrong'
+
+Rule: 
+- Integer: ±max(round(10%), 1)
+- Decimal: ±max(10%, 0.1)
+- Randomly choose + or -
+- Fallback: append '_wrong'
 
