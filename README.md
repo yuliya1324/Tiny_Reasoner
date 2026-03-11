@@ -10,7 +10,7 @@
 pip install -r requirements.txt
 
 # 2. Run SFT baseline (change `output_dir` in `configs/sft.yaml`)
-python -m experiments.sft_baseline.train --config configs/dpo.yaml
+python -m experiments.dpo.train --config configs/dpo.yaml
 
 # 3. Evaluate
 python -m src.evaluation.evaluate --checkpoint <path_to_results_dir>/results/dpo_baseline/final --split test --output <path_to_results_dir>/results/dpo_baseline/eval_test.json --batch_size 16
