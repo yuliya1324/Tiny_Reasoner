@@ -41,5 +41,47 @@ Natalia sold 48+24 = 72 clips altogether in April and May.
 </think>
 <answer>79</answer>
 
+#### Results
+  n_examples: 1319
+  accuracy: 0.0015
+  format_adherence: 0.2540
+  has_reasoning: 0.6861
+  answer_extraction_rate: 0.2790
+  avg_reasoning_length: 35.7597
+
+
+Output Example\
+<think>
+The increase in value was 150% so that's 150/100 * 80,000 = $120,000
+He spent 80,000 + 50,000 = $130,000 on repairs
+So his profit was 130,000 - 120,000 = $10,000
+</think กรกฎาคม> honeymoon_trip = 10000
+cost_of_house = 80000
+repair_value_increase = 150/100 * 80000 = $120,000
+Total cost of trip = 10000 + 80000 = $90,000
+Profit = 90000 - 10000 = $80,000
+</scratch>80000
+80000
+</answer>80000
+
+-> answer correctness を学ばせるつもりが、人工的すぎる preference pair のせいで出力分布そのものを壊した
+
 ### SFT baseline based
+
+
+CHOSEN:
+ <think>
+In the beginning, Betty has only 100 / 2 = $50.
+Betty's grandparents gave her 15 * 2 = $30.
+This means, Betty needs 100 - 50 - 30 - 15 = $5 more.
+</think>
+<answer>5</answer>
+
+REJECTED:
+ <think>
+Betty's parents gave her 15 + 2 * 15 = $60.
+So in total, Betty has 60 + 15 = $75.
+Thus, she still needs 100 - 75 = $25.
+</think>
+<answer>25</answer>
 
