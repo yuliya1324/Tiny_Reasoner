@@ -8,7 +8,7 @@ trl>=0.15.0
 bitsandbytes>=0.43.0
 
 # Evaluation & utilities
-numpy
+numpy<2 
 pandas
 sympy
 
@@ -23,3 +23,6 @@ ipywidgets
 
 # Config
 pyyaml
+
+# DPO
+scipy<1.12
