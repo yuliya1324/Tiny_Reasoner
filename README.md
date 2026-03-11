@@ -18,7 +18,7 @@ python -m src.evaluation.evaluate --checkpoint <path_to_results_dir>/results/dpo
 
 ## DPO design
 ### DPO baseline
-Changed only the numerical final answers for DPO rejected samples, while keeping the reasoning (<think>...</think>) unchanged. This design was motivated by the SFT baseline results: reasoning quality was already high (`has_reasoning > 0.8`), while answer accuracy remained low (`accuracy < 0.2`).
+Changed only the numerical final answers for DPO rejected samples, while keeping the reasoning (`<think>...</think>`) unchanged. This design was motivated by the SFT baseline results: reasoning quality was already high (`has_reasoning > 0.8`), while answer accuracy remained low (`accuracy < 0.2`).
 
 Wrong Answer Rule: 
 - Integer: `±max(round(10%), 1)`
