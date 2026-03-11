@@ -14,5 +14,5 @@ training:
   eval_steps: 200
   fp16: true
 
-output_dir: "/Data/iuliia.korotkova/Tiny_Reasoner/results/sft_baseline"
+output_dir: "/Data/masayo.tomita/Tiny_Reasoner/results/sft_baseline"
 experiment_name: sft_baseline

@@ -11,6 +11,9 @@ We convert to our prompt format with <think>/<answer> tags.
 import re
 from datasets import load_dataset, Dataset
 
+import random
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+
 
 # ---------------------------------------------------------------------------
 # Answer extraction from GSM8K format
@@ -72,6 +75,75 @@ def format_sft_target(reasoning: str, answer: str) -> str:
     clean_reasoning = re.sub(r"<<.*?>>", "", reasoning).strip()
     return f"<think>\n{clean_reasoning}\n</think>\n<answer>{answer}</answer>"
 
+# ---------------------------------------------------------------------------
+# DPO utilities
+# ---------------------------------------------------------------------------
+def make_wrong_answer(answer: str) -> str:
+    
+    import random
+    from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+
+    """
+    Create a minimally corrupted wrong numerical answer for DPO rejected samples.
+
+    Rule:
+      - Integer: ±max(round(10%), 1)
+      - Decimal: ±max(10%, 0.1)
+      - Randomly choose + or -
+      - Fallback: append '_wrong'
+    """
+    answer = answer.strip().replace(",", "")
+
+    try:
+        value = Decimal(answer)
+
+        # Integer-like answer
+        if value == value.to_integral_value():
+            offset = max(
+                int((abs(value) * Decimal("0.1")).to_integral_value(rounding=ROUND_HALF_UP)),
+                1,
+            )
+            sign = random.choice([-1, 1])
+            wrong_value = int(value) + sign * offset
+            return str(wrong_value)
+
+        # Decimal answer
+        offset = max(abs(value) * Decimal("0.1"), Decimal("0.1"))
+        sign = random.choice([-1, 1])
+        wrong_value = value + (Decimal(sign) * offset)
+
+        return str(wrong_value.quantize(Decimal("0.01")).normalize())
+
+    except (InvalidOperation, ValueError):
+        if answer.endswith("_wrong"):
+            return answer + "1"
+        return answer + "_wrong"
+
+
+def build_dpo_example(example, tokenizer):
+    """
+    Convert one GSM8K sample into a DPO example with:
+      - prompt
+      - chosen
+      - rejected
+    """
+    question = example["question"]
+    answer_text = example["answer"]
+
+    reasoning = extract_gsm8k_reasoning(answer_text)
+    answer = extract_gsm8k_answer(answer_text)
+
+    prompt = format_chat_prompt(question, tokenizer)
+    chosen = format_sft_target(reasoning, answer)
+    rejected = format_sft_target(reasoning, make_wrong_answer(answer))
+
+    return {
+        "prompt": prompt,
+        "chosen": chosen,
+        "rejected": rejected,
+        "answer": answer,
+    }
+
 
 # ---------------------------------------------------------------------------
 # Dataset loading
@@ -107,4 +179,26 @@ def prepare_sft_dataset(tokenizer, split: str = "train", max_samples: int = None
         return {"text": prompt + completion, "prompt": prompt, "completion": completion}
 
     ds = ds.map(format_example, remove_columns=ds.column_names)
+    return ds
+
+def prepare_dpo_dataset(
+    tokenizer,
+    split: str = "train",
+    max_samples: int = None,
+) -> Dataset:
+    """
+    Prepare GSM8K for DPO.
+
+    Returns a Dataset with:
+      - prompt
+      - chosen
+      - rejected
+      - answer
+    """
+    ds = load_gsm8k(split, max_samples)
+
+    ds = ds.map(
+        lambda example: build_dpo_example(example, tokenizer),
+        remove_columns=ds.column_names,
+    )
     return ds
