@@ -4,11 +4,11 @@ SFT Trainer — supervised fine-tuning on GSM8K correct solutions.
 Uses TRL's SFTTrainer which handles packing, LoRA, and all the plumbing.
 """
 
-# from transformers import TrainingArguments
 from trl import SFTTrainer, SFTConfig
 
 from src.models.loader import load_model_and_tokenizer
 from src.utils.data_utils import prepare_sft_dataset
+
 
 def train_sft(cfg: dict):
     """
@@ -18,7 +18,7 @@ def train_sft(cfg: dict):
         cfg: Merged config dict (base.yaml + sft.yaml).
     """
     train_cfg = cfg["training"]
-    output_dir = cfg.get("output_dir")
+    output_dir = cfg.get("output_dir", "results/sft_baseline")
 
     # Load model + tokenizer
     model, tokenizer = load_model_and_tokenizer(cfg, for_training=True)
@@ -48,7 +48,8 @@ def train_sft(cfg: dict):
         warmup_ratio=train_cfg.get("warmup_ratio", 0.1),
         weight_decay=train_cfg.get("weight_decay", 0.01),
         max_grad_norm=train_cfg.get("max_grad_norm", 1.0),
-        fp16=train_cfg.get("fp16", True),
+        fp16=train_cfg.get("fp16", False),
+        bf16=train_cfg.get("bf16", False),
         logging_steps=train_cfg.get("logging_steps", 10),
         save_steps=train_cfg.get("save_steps", 200),
         eval_steps=train_cfg.get("eval_steps", 200),

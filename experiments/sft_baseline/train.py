@@ -9,7 +9,6 @@ Usage:
 import argparse
 import yaml
 from pathlib import Path
-from src.training.sft_trainer import train_sft
 
 
 def load_config(config_path: str = None) -> dict:
@@ -41,10 +40,15 @@ def main():
 
     cfg = load_config(args.config)
 
+    # Pin all random seeds for reproducibility
+    from src.utils.seed import set_seed
+    set_seed(cfg.get("seed", 42))
+
     if args.no_wandb:
         import os
         os.environ["WANDB_DISABLED"] = "true"
 
+    from src.training.sft_trainer import train_sft
     trainer = train_sft(cfg)
     print("SFT training complete!")
 

@@ -47,9 +47,11 @@ def generate_responses_batched(model, tokenizer, prompts: list[str],
             )
 
         # Decode only the generated part for each example
+        input_len = inputs["input_ids"].shape[1]
         for j, output in enumerate(outputs):
-            prompt_len = inputs["attention_mask"][j].sum().item()
-            generated = output[prompt_len:]
+            # prompt_len = inputs["attention_mask"][j].sum().item()
+            # generated = output[prompt_len:]
+            generated = output[input_len:]
             text = tokenizer.decode(generated, skip_special_tokens=True)
             all_responses.append(text)
 
@@ -142,6 +144,9 @@ def main():
     import yaml
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+
+    from src.utils.seed import set_seed
+    set_seed(cfg.get("seed", 42))
 
     from src.models.loader import load_model_from_checkpoint
     model, tokenizer = load_model_from_checkpoint(args.checkpoint, cfg)
