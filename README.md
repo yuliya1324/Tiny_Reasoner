@@ -70,7 +70,7 @@ Natalia sold 48+24 = 72 clips altogether.
 
 | Method | Reward | Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
 |--------|--------|:--------:|:----------------:|:-------------:|:-----------------:|
-| SFT Baseline | — | 0.1077 | 0.9992 | 0.7528 | 31.7513 |
+| SFT Baseline | — | 0.2995 | 0.9977 | 0.9977 | 46.5830 |
 
 ## Team Workflow
 
