@@ -7,7 +7,7 @@ Usage:
 """
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, AutoModelForSequenceClassification
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType
 
 
@@ -85,9 +85,8 @@ def load_model_and_tokenizer(cfg: dict, for_training: bool = True):
     return model, tokenizer
 
 
-def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
+def load_model_from_checkpoint(checkpoint_path: str, cfg: dict, for_training: bool = False):
     """Load a fine-tuned LoRA model from a checkpoint."""
-    from peft import PeftModel
 
     model_name = cfg["model"]["name"]
     tokenizer = load_tokenizer(model_name)
@@ -99,7 +98,38 @@ def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
         torch_dtype=torch.float16,
         trust_remote_code=True,
     )
-    model = PeftModel.from_pretrained(model, checkpoint_path)
+    if for_training:
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, checkpoint_path)
+    
     model.eval()
-
     return model, tokenizer
+
+def load_value_model(cfg: dict) -> torch.nn.Module:
+    model_name = cfg["model"]["name"]
+    use_quant = cfg["model"].get("quantization") == "4bit"
+
+    model_kwargs = {"trust_remote_code": True, "torch_dtype": torch.float16, "num_labels": 1}
+    if use_quant:
+        model_kwargs["quantization_config"] = get_bnb_config()
+        model_kwargs["device_map"] = "auto"
+    else:
+        model_kwargs["device_map"] = "auto"
+
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, **model_kwargs)
+    model.config.pad_token_id = model.config.eos_token_id  # <-- add this line
+
+    if use_quant:
+        model = prepare_model_for_kbit_training(model)
+
+    lora_cfg = cfg["model"]["lora"]
+    lora_config = LoraConfig(
+        r=lora_cfg["r"],
+        lora_alpha=lora_cfg["lora_alpha"],
+        lora_dropout=lora_cfg["lora_dropout"],
+        target_modules=lora_cfg["target_modules"],
+        task_type=TaskType.SEQ_CLS,  # <-- not CAUSAL_LM
+        bias="none",
+    )
+    model = get_peft_model(model, lora_config)
+    return model

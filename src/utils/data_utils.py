@@ -108,3 +108,33 @@ def prepare_sft_dataset(tokenizer, split: str = "train", max_samples: int = None
 
     ds = ds.map(format_example, remove_columns=ds.column_names)
     return ds
+
+def prepare_ppo_dataset_with_gt(tokenizer, split: str = "train", max_samples: int = None,
+                         max_length: int = 512) -> Dataset:
+    """
+    Tokenizes GSM8K questions for PPO and builds a prompt→ground_truth lookup.
+
+    Returns:
+        dataset:          HF Dataset with input_ids + attention_mask (no text columns).
+        gt_lookup:        dict[str, str] mapping question_text -> answer string.
+                          Used by GroundTruthPPOTrainer to inject ground truths
+                          into RuleBasedRewardWrapper at reward computation time.
+    """
+    ds = load_gsm8k(split, max_samples)
+
+    # Build lookup before removing columns
+    gt_lookup = {
+        format_chat_prompt(ex["question"], tokenizer): extract_gsm8k_answer(ex["answer"])
+        for ex in ds
+    }
+
+    def tokenize(example):
+        return tokenizer(
+            format_chat_prompt(example["question"], tokenizer),
+            truncation=True,
+            max_length=max_length,
+            padding=False,
+        )
+
+    tokenized = ds.map(tokenize, remove_columns=ds.column_names)
+    return tokenized, gt_lookup

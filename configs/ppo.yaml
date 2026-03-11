@@ -1,0 +1,24 @@
+# SFT Baseline — inherits from base.yaml
+training:
+  method: "ppo"
+  reward: ""
+
+  num_epochs: 1
+  per_device_batch_size: 4
+  gradient_accumulation_steps: 4
+
+  learning_rate: 1.0e-5
+  adam_epsilon: 1.0e-5
+  weight_decay: 0.01
+  
+  lr_scheduler: "linear"
+  warmup_steps: 30
+
+  max_grad_norm: 1.0
+  logging_steps: 10
+  save_steps: 200
+  eval_steps: 200
+  fp16: true
+
+output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/ppo"
+experiment_name: ppo
