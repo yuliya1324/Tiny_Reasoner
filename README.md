@@ -41,3 +41,5 @@ Natalia sold 48+24 = 72 clips altogether in April and May.
 </think>
 <answer>79</answer>
 
+### SFT baseline based
+
