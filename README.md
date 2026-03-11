@@ -18,11 +18,26 @@ python -m src.evaluation.evaluate --checkpoint <path_to_results_dir>/results/dpo
 
 ## DPO design
 ### DPO baseline
-Make wrong answers automatically.
+Changed only the numerical final answers for DPO rejected samples, while keeping the reasoning (<think>...</think>) unchanged. This design was motivated by the SFT baseline results: reasoning quality was already high (`has_reasoning > 0.8`), while answer accuracy remained low (`accuracy < 0.2`).
 
-Rule: 
-- Integer: ±max(round(10%), 1)
-- Decimal: ±max(10%, 0.1)
-- Randomly choose + or -
+Wrong Answer Rule: 
+- Integer: `±max(round(10%), 1)`
+- Decimal: `±max(10%, 0.1)`
+- Randomly choose `+` or `-`
 - Fallback: append '_wrong'
+
+Example: \
+CHOSEN:
+ <think>
+Natalia sold 48/2 = 24 clips in May.
+Natalia sold 48+24 = 72 clips altogether in April and May.
+</think>
+<answer>72</answer>
+
+REJECTED:
+ <think>
+Natalia sold 48/2 = 24 clips in May.
+Natalia sold 48+24 = 72 clips altogether in April and May.
+</think>
+<answer>79</answer>
 
