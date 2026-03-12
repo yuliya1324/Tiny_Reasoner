@@ -141,3 +141,19 @@ Thus she still needs 100 - 75 = $25.
 </think>
 <answer>25</answer>
 ```
+
+### Result
+Accuracy dropped compared to the SFT baseline by increasing train epochs.
+-> The model learnt longer output is better, and format degradation has been observed.
+
+**Example Output**
+```
+<think>
+First find the number of eggs Janet's ducks lay for breakfast: 16 eggs/day * 3 eggs/meal = 16 eggs
+Then find the total number of eggs baked every day: 16 eggs/day + 4 eggs/buffet = 16 eggs
+Find the number of eggs Janet's ducks sell after baking: 16 eggs/day * 4 eggs/duck = 64 eggs
+Find the number of eggs Janet's ducks sell after the birds eat: 16 eggs/day + 16 eggs * 16 eggs/duck = 256 eggs
+Find the number of eggs Janet's ducks sell for the farmers' market every day: 256 eggs * $2/16 eggs = $20
+Find the number of eggs Janet's ducks lay every day: 16 eggs/day + 16 eggs * 16 eggs/duck = 256 eggs
+The ducks lay 16 eggs, 16 eggs are eaten for breakfast, 16 eggs are baked for baking, 16 eggs are sold to the farmers' market for selling, and 16 eggs are sold to the birds for eating 256 eggs
+```
