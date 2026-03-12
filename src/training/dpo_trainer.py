@@ -9,7 +9,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import PeftModel
 from trl import DPOTrainer, DPOConfig
 
-from src.utils.data_utils import prepare_dpo_dataset
+from src.utils.data_utils import (
+    prepare_dpo_dataset,
+    prepare_dpo_dataset_from_sft_outputs,
+)
 
 
 def get_bnb_config():
@@ -76,6 +79,45 @@ def load_ref_model_from_sft_checkpoint(cfg: dict):
     return ref_model
 
 
+def load_dpo_train_dataset(cfg: dict, tokenizer):
+    """
+    Load training dataset depending on config:
+      - synthetic
+      - sft_outputs
+    """
+    dpo_source = cfg["data"].get("dpo_source", "synthetic")
+
+    if dpo_source == "synthetic":
+        return prepare_dpo_dataset(
+            tokenizer,
+            split="train",
+            max_samples=cfg["data"].get("max_train_samples"),
+        )
+
+    if dpo_source == "sft_outputs":
+        ds = prepare_dpo_dataset_from_sft_outputs(
+            cfg["data"]["train_pair_path"]
+        )
+        max_samples = cfg["data"].get("max_train_samples")
+        if max_samples is not None:
+            ds = ds.select(range(min(max_samples, len(ds))))
+        return ds
+
+    raise ValueError(f"Unknown dpo_source: {dpo_source}")
+
+
+def load_dpo_eval_dataset(cfg: dict, tokenizer):
+    """
+    Keep eval simple and consistent:
+    always use the synthetic test set for now.
+    """
+    return prepare_dpo_dataset(
+        tokenizer,
+        split="test",
+        max_samples=200,
+    )
+
+
 def train_dpo(cfg: dict):
     train_cfg = cfg["training"]
     dpo_cfg = cfg["dpo"]
@@ -85,16 +127,8 @@ def train_dpo(cfg: dict):
 
     tokenizer = load_tokenizer_for_dpo(cfg)
 
-    train_dataset = prepare_dpo_dataset(
-        tokenizer,
-        split="train",
-        max_samples=cfg["data"].get("max_train_samples"),
-    )
-    eval_dataset = prepare_dpo_dataset(
-        tokenizer,
-        split="test",
-        max_samples=200,
-    )
+    train_dataset = load_dpo_train_dataset(cfg, tokenizer)
+    eval_dataset = load_dpo_eval_dataset(cfg, tokenizer)
 
     policy_model = load_policy_model_from_sft_checkpoint(cfg)
     ref_model = load_ref_model_from_sft_checkpoint(cfg)
@@ -134,6 +168,10 @@ def train_dpo(cfg: dict):
     )
 
     print(f"Starting DPO training — output: {output_dir}")
+    print(f"DPO source: {cfg['data'].get('dpo_source', 'synthetic')}")
+    print(f"Train examples: {len(train_dataset)}")
+    print(f"Eval examples: {len(eval_dataset)}")
+
     trainer.train()
 
     final_path = f"{output_dir}/final"

@@ -46,10 +46,10 @@ def generate_responses_batched(model, tokenizer, prompts: list[str],
                 pad_token_id=tokenizer.pad_token_id,
             )
 
-        # Decode only the generated part for each example
+        # Decode only the newly generated tokens
+        input_len = inputs["input_ids"].shape[1]
         for j, output in enumerate(outputs):
-            prompt_len = inputs["attention_mask"][j].sum().item()
-            generated = output[prompt_len:]
+            generated = output[input_len:]
             text = tokenizer.decode(generated, skip_special_tokens=True)
             all_responses.append(text)
 

@@ -9,11 +9,8 @@ We convert to our prompt format with <think>/<answer> tags.
 """
 
 import re
+import json
 from datasets import load_dataset, Dataset
-
-import random
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-
 
 # ---------------------------------------------------------------------------
 # Answer extraction from GSM8K format
@@ -201,4 +198,36 @@ def prepare_dpo_dataset(
         lambda example: build_dpo_example(example, tokenizer),
         remove_columns=ds.column_names,
     )
+    return ds
+
+
+import json
+from datasets import Dataset
+
+def load_jsonl_dataset(path: str) -> Dataset:
+    records = []
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            records.append(json.loads(line))
+    return Dataset.from_list(records)
+
+
+def prepare_dpo_dataset_from_sft_outputs(path: str) -> Dataset:
+    ds = load_jsonl_dataset(path)
+
+    def keep_fields(example):
+        return {
+            "prompt": example["prompt"],
+            "chosen": example["chosen"],
+            "rejected": example["rejected"],
+            "question": example.get("question", ""),
+            "gt_answer": example.get("gt_answer", ""),
+        }
+
+    ds = ds.map(keep_fields, remove_columns=ds.column_names)
+
+    ds = ds.filter(
+        lambda x: x["rejected"].strip() != "" and x["rejected"].strip() != x["chosen"].strip()
+    )
+
     return ds
