@@ -26,9 +26,8 @@ Two preference dataset designs were explored.
 | Method |  Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
 |--------|:--------:|:----------------:|:-------------:|:-----------------:|
 | DPO Baseline | 0.0068 | 0.0326 | 0.7968 | 39.5186 |
-| DPO - SFT-Generated Rejected Responses | 0.2873 | 0.9970 | 0.9970 | 54.4215 |
+| DPO - SFT-Generated Rejected Responses | 0.2024 | 0.9666 | 0.9689 | 81.5201 |
 
----
 
 ## DPO Baseline: Synthetic Rejected Answers
 
