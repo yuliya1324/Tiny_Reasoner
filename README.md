@@ -71,6 +71,12 @@ Natalia sold 48+24 = 72 clips altogether.
 | Method | Reward | Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
 |--------|--------|:--------:|:----------------:|:-------------:|:-----------------:|
 | SFT Baseline | — | 0.1077 | 0.9992 | 0.7528 | 31.7513 |
+| GRPO | sparse | 0.4792 | 0.0000 | 0.0000 | 0.0000 |
+| GRPO from SFT | sparse | 0.3548 | 1.0000 | 1.0000 | 46.5216 |
+| GRPO format | format | 0.3245 | 0.9909 | 0.9962 | 22.1607 |
+| GRPO format from SFT | format | 0.3404 | 1.0000 | 0.9992 | 46.5125 |
+| GRPO composite | composite | 0.0425 | 1.0000 | 0.0000 | 1.0243 |
+| GRPO composite from SFT | composite | 0.3177 | 0.9985 | 0.9985 | 44.2077 |
 
 ## Team Workflow
 
@@ -81,4 +87,3 @@ Natalia sold 48+24 = 72 clips altogether.
     - Add the function to prepare a dataset for your experiment `prepare_<your_exp>_dataset` to  `src/utils/data_utils.py` if needed 
     - Add your reward function to `src/rewards`
 3. Merge into `main` once experiments complete
-4. Run analysis notebook to generate figures for the presentation (change `RESULTS_DIR`)
