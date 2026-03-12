@@ -58,22 +58,21 @@ def load_model_and_tokenizer(cfg: dict, for_training: bool = True):
     """
     model_name = cfg["model"]["name"]
     use_quant = cfg["model"].get("quantization") == "4bit"
+    base_model_name = cfg["model"].get("base_name", model_name)
 
-    # Load tokenizer
-    tokenizer = load_tokenizer(model_name)
+    tokenizer = load_tokenizer(base_model_name)
 
-    # Load model
-    model_kwargs = {
-        "trust_remote_code": True,
-        "torch_dtype": torch.float16,
-    }
+    model_kwargs = {"trust_remote_code": True, "torch_dtype": torch.bfloat16}
     if use_quant:
         model_kwargs["quantization_config"] = get_bnb_config()
-        model_kwargs["device_map"] = "auto"
-    else:
-        model_kwargs["device_map"] = "auto"
+    model_kwargs["device_map"] = "auto"
 
-    model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+    model = AutoModelForCausalLM.from_pretrained(base_model_name, **model_kwargs)
+
+    # If model_name != base_name, it's a LoRA checkpoint — load adapter
+    if model_name != base_model_name:
+        from peft import PeftModel
+        model = PeftModel.from_pretrained(model, model_name)
 
     if for_training:
         if use_quant:
@@ -107,17 +106,16 @@ def load_model_from_checkpoint(checkpoint_path: str, cfg: dict, for_training: bo
 
 def load_value_model(cfg: dict) -> torch.nn.Module:
     model_name = cfg["model"]["name"]
+    base_model_name = cfg["model"].get("base_name", model_name)  # use base
     use_quant = cfg["model"].get("quantization") == "4bit"
 
-    model_kwargs = {"trust_remote_code": True, "torch_dtype": torch.float16, "num_labels": 1}
+    model_kwargs = {"trust_remote_code": True, "torch_dtype": torch.bfloat16, "num_labels": 1}
     if use_quant:
         model_kwargs["quantization_config"] = get_bnb_config()
-        model_kwargs["device_map"] = "auto"
-    else:
-        model_kwargs["device_map"] = "auto"
+    model_kwargs["device_map"] = "auto"
 
-    model = AutoModelForSequenceClassification.from_pretrained(model_name, **model_kwargs)
-    model.config.pad_token_id = model.config.eos_token_id  # <-- add this line
+    model = AutoModelForSequenceClassification.from_pretrained(base_model_name, **model_kwargs)
+    model.config.pad_token_id = model.config.eos_token_id
 
     if use_quant:
         model = prepare_model_for_kbit_training(model)
@@ -128,7 +126,7 @@ def load_value_model(cfg: dict) -> torch.nn.Module:
         lora_alpha=lora_cfg["lora_alpha"],
         lora_dropout=lora_cfg["lora_dropout"],
         target_modules=lora_cfg["target_modules"],
-        task_type=TaskType.SEQ_CLS,  # <-- not CAUSAL_LM
+        task_type=TaskType.SEQ_CLS,
         bias="none",
     )
     model = get_peft_model(model, lora_config)
