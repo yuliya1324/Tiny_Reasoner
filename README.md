@@ -23,6 +23,11 @@ The goal is to improve answer correctness by training the model to prefer **corr
 
 Two preference dataset designs were explored.
 
+| Method | Reward | Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
+|--------|--------|:--------:|:----------------:|:-------------:|:-----------------:|
+| DPO Baseline | — | 0.0068 | 0.0326 | 0.7968 | 39.5186 |
+| DPO - SFT-Generated Rejected Responses | — | 0.2873 | 0.9970 | 0.9970 | 54.4215 |
+
 ---
 
 ## DPO Baseline: Synthetic Rejected Answers
@@ -35,8 +40,6 @@ The SFT baseline showed:
 - **Low answer accuracy** (`accuracy < 0.2`)
 
 Therefore, the initial DPO design focused on improving **final answer correctness** while keeping the reasoning unchanged.
-
----
 
 ### Preference Pair Construction
 
@@ -54,7 +57,6 @@ Only the numerical answer was altered.
 - Randomly choose `+` or `-`
 - Fallback → append `_wrong`
 
----
 
 ### Example
 
@@ -118,7 +120,6 @@ These mistakes typically include:
 
 This provides a more meaningful learning signal for DPO compared to synthetic perturbations.
 
----
 
 ### Example
 
