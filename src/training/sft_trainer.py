@@ -30,10 +30,12 @@ def train_sft(cfg: dict):
         max_samples=cfg["data"].get("max_train_samples"),
         max_length=cfg["data"].get("max_length", 512),
     )
+    # Use a held-out slice of the train split for validation to avoid test-set leakage.
+    # GSM8K has no official validation split, so we carve off the last 200 train examples.
     eval_dataset = prepare_sft_dataset(
         tokenizer,
-        split="test",
-        max_samples=200,  # small eval set for speed
+        split="train[7273:]",   # last 200 of 7473 train examples
+        max_samples=200,
         max_length=cfg["data"].get("max_length", 512),
     )
 

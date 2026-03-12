@@ -1,0 +1,27 @@
+# GRPO with format-shaped reward (accuracy + format bonus) — ablation
+experiment_name: "grpo_format"
+
+grpo:
+  num_generations: 4
+  per_device_train_batch_size: 8   # was 4; ~2x memory, fewer steps
+  gradient_accumulation_steps: 4   # effective batch 32 (was 16) → ~half the steps
+  learning_rate: 5.0e-6
+  num_train_epochs: 1
+  max_completion_length: 512
+  max_prompt_length: 256
+  temperature: 1.0
+  beta: 0.0
+  loss_type: "dr_grpo"
+  bf16: false
+  fp16: true
+  use_liger_loss: false
+  gradient_checkpointing: true
+  logging_steps: 10
+  save_steps: 200
+  save_total_limit: 1   # keep only latest checkpoint (saves disk)
+
+reward_type: "format"   # accuracy + format adherence
+sft_checkpoint: null
+
+# Use Data path to avoid disk quota in project dir
+output_dir: "/Data/yash.bhardwaj/Tiny_Reasoner/results/grpo_format"

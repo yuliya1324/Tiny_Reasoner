@@ -1,0 +1,25 @@
+# GRPO with composite reward (accuracy + format + length penalty) — better params
+experiment_name: "grpo_composite_v2"
+
+grpo:
+  num_generations: 8
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 16
+  learning_rate: 5.0e-6
+  num_train_epochs: 1
+  max_completion_length: 512
+  max_prompt_length: 256
+  temperature: 1.3
+  beta: 0.04
+  loss_type: "dr_grpo"
+  bf16: false
+  fp16: true
+  use_liger_loss: false
+  gradient_checkpointing: true
+  logging_steps: 10
+  save_steps: 200
+
+reward_type: "composite"  # accuracy + format + length penalty (all 3)
+sft_checkpoint: null
+
+output_dir: "/Data/yash.bhardwaj/Tiny_Reasoner/results/grpo_composite_v2"
