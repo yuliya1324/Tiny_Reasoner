@@ -23,10 +23,10 @@ The goal is to improve answer correctness by training the model to prefer **corr
 
 Two preference dataset designs were explored.
 
-| Method | Reward | Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
-|--------|--------|:--------:|:----------------:|:-------------:|:-----------------:|
-| DPO Baseline | — | 0.0068 | 0.0326 | 0.7968 | 39.5186 |
-| DPO - SFT-Generated Rejected Responses | — | 0.2873 | 0.9970 | 0.9970 | 54.4215 |
+| Method |  Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
+|--------|:--------:|:----------------:|:-------------:|:-----------------:|
+| DPO Baseline | 0.0068 | 0.0326 | 0.7968 | 39.5186 |
+| DPO - SFT-Generated Rejected Responses | 0.2873 | 0.9970 | 0.9970 | 54.4215 |
 
 ---
 
