@@ -30,6 +30,7 @@ Two preference dataset designs were explored.
 | DPO - SFT-Generated Rejected Responses| 0.1 | 1 | 0.2024 | 0.9666 | 0.9689 | 81.5201 |
 | DPO - SFT-Generated Rejected Responses | 0.1 | 3 | 0.0629 | 0.6384 | 0.8893 | 103.3397 |
 | DPO - Short chosen & SFT-Generated Rejected| 0.1 | 1 | 0.2540 | 0.9947 | 0.9879 | 38.9530 |
+| DPO - Short chosen & SFT-Generated Rejected| 0.1 | 3 | 0.2608 | 0.9932 | 0.9826 | 36.8741 |
 
 ## DPO Baseline: Synthetic Rejected Answers
 
