@@ -1,4 +1,4 @@
-# Tiny Reasoner — GRPO vs. PPO for Teaching a 0.5B Model to Think
+# Tiny Reasoner — DPO vs. PPO vs. GRPO for Teaching a 0.5B Model to Think
 
 > RL Course Project: Investigating whether GRPO can teach a small language model
 > chain-of-thought reasoning on math problems, compared against PPO, DPO, and SFT.
