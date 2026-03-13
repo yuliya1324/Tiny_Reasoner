@@ -182,7 +182,7 @@ def _compute_token_rewards(
 
 def token_level_reward(
     generated_ids_batch: list[torch.Tensor],
-    tokenizers,
+    tokenizer,
     gt_texts: list[str],
     calc_reward: float = 0.5,
 ) -> list[torch.Tensor]:
@@ -203,7 +203,7 @@ def token_level_reward(
             calc_reward=calc_reward,
             format_reward=None,
         )
-        for gen_ids, tokenizer, gt in zip(generated_ids_batch, tokenizers, gt_texts)
+        for gen_ids, gt in zip(generated_ids_batch, gt_texts)
     ]
 
 
