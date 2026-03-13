@@ -23,13 +23,13 @@ The goal is to improve answer correctness by training the model to prefer **corr
 
 Two preference dataset designs were explored.
 
-| Method |  Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
-|--------|:--------:|:----------------:|:-------------:|:-----------------:|
-| SFT Baseline | 0.2995 | 0.9977 | 0.9977 | 46.5830 |
-| DPO - Synthetic Rejected Responses (epoch 1) | 0.0068 | 0.0326 | 0.7968 | 39.5186 |
-| DPO - SFT-Generated Rejected Responses (epoch 1)| 0.2024 | 0.9666 | 0.9689 | 81.5201 |
-| DPO - SFT-Generated Rejected Responses (epoch 3)| 0.0629 | 0.6384 | 0.8893 | 103.3397 |
-| DPO - Short chosen & SFT-Generated Rejected (epoch 1) | 0.2540 | 0.9947 | 0.9879 | 38.9530 |
+| Method | $beta$ | epoch|  Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
+|--------|:--------:| :--------:| :--------:|:----------------:|:-------------:|:-----------------:|
+| SFT Baseline | - | - | 0.2995 | 0.9977 | 0.9977 | 46.5830 |
+| DPO - Synthetic Rejected Responses | 0.1 | 1 | 0.0068 | 0.0326 | 0.7968 | 39.5186 |
+| DPO - SFT-Generated Rejected Responses| 0.1 | 1 | 0.2024 | 0.9666 | 0.9689 | 81.5201 |
+| DPO - SFT-Generated Rejected Responses | 0.1 | 3 | 0.0629 | 0.6384 | 0.8893 | 103.3397 |
+| DPO - Short chosen & SFT-Generated Rejected| 0.1 | 1 | 0.2540 | 0.9947 | 0.9879 | 38.9530 |
 
 ## DPO Baseline: Synthetic Rejected Answers
 
