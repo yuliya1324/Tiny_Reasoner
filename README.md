@@ -29,6 +29,7 @@ Two preference dataset designs were explored.
 | DPO - Synthetic Rejected Responses (epoch 1) | 0.0068 | 0.0326 | 0.7968 | 39.5186 |
 | DPO - SFT-Generated Rejected Responses (epoch 1)| 0.2024 | 0.9666 | 0.9689 | 81.5201 |
 | DPO - SFT-Generated Rejected Responses (epoch 3)| 0.0629 | 0.6384 | 0.8893 | 103.3397 |
+| DPO - Short chosen & SFT-Generated Rejected (epoch 1) | 0.2540 | 0.9947 | 0.9879 | 38.9530 |
 
 ## DPO Baseline: Synthetic Rejected Answers
 
@@ -157,4 +158,18 @@ Find the number of eggs Janet's ducks sell after the birds eat: 16 eggs/day + 16
 Find the number of eggs Janet's ducks sell for the farmers' market every day: 256 eggs * $2/16 eggs = $20
 Find the number of eggs Janet's ducks lay every day: 16 eggs/day + 16 eggs * 16 eggs/duck = 256 eggs
 The ducks lay 16 eggs, 16 eggs are eaten for breakfast, 16 eggs are baked for baking, 16 eggs are sold to the farmers' market for selling, and 16 eggs are sold to the birds for eating 256 eggs
+```
+
+## Short Chosen
+
+**Example**
+```
+Problem: Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?<|im_end|>
+<|im_start|>assistant
+
+CHOSEN:
+ <think>
+48/2=24, 48+24=72
+</think>
+<answer>72</answer>
 ```
