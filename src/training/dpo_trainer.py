@@ -11,9 +11,10 @@ from trl import DPOTrainer, DPOConfig
 
 from src.utils.data_utils import (
     prepare_dpo_dataset,
+    prepare_dpo_dataset_short_chosen,
     prepare_dpo_dataset_from_sft_outputs,
+    prepare_dpo_dataset_from_sft_outputs_short_chosen,
 )
-
 
 def get_bnb_config():
     """4-bit NF4 quantization config."""
@@ -80,11 +81,6 @@ def load_ref_model_from_sft_checkpoint(cfg: dict):
 
 
 def load_dpo_train_dataset(cfg: dict, tokenizer):
-    """
-    Load training dataset depending on config:
-      - synthetic
-      - sft_outputs
-    """
     dpo_source = cfg["data"].get("dpo_source", "synthetic")
 
     if dpo_source == "synthetic":
@@ -94,8 +90,24 @@ def load_dpo_train_dataset(cfg: dict, tokenizer):
             max_samples=cfg["data"].get("max_train_samples"),
         )
 
+    if dpo_source == "synthetic_short_chosen":
+        return prepare_dpo_dataset_short_chosen(
+            tokenizer,
+            split="train",
+            max_samples=cfg["data"].get("max_train_samples"),
+        )
+
     if dpo_source == "sft_outputs":
         ds = prepare_dpo_dataset_from_sft_outputs(
+            cfg["data"]["train_pair_path"]
+        )
+        max_samples = cfg["data"].get("max_train_samples")
+        if max_samples is not None:
+            ds = ds.select(range(min(max_samples, len(ds))))
+        return ds
+
+    if dpo_source == "sft_outputs_short_chosen":
+        ds = prepare_dpo_dataset_from_sft_outputs_short_chosen(
             cfg["data"]["train_pair_path"]
         )
         max_samples = cfg["data"].get("max_train_samples")
@@ -144,11 +156,12 @@ def train_dpo(cfg: dict):
         weight_decay=train_cfg.get("weight_decay", 0.01),
         max_grad_norm=train_cfg.get("max_grad_norm", 1.0),
         logging_steps=train_cfg.get("logging_steps", 10),
-        save_steps=train_cfg.get("save_steps", 200),
-        eval_steps=train_cfg.get("eval_steps", 200),
-        eval_strategy="steps",
-        save_total_limit=2,
+
+        save_strategy="epoch",
+        eval_strategy="epoch",
+        save_total_limit=10,
         load_best_model_at_end=False,
+
         report_to="none" if os.environ.get("WANDB_DISABLED") == "true" else "wandb",
         run_name=cfg["experiment_name"],
         fp16=train_cfg.get("fp16", True),

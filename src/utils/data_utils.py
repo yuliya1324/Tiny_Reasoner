@@ -31,6 +31,72 @@ def extract_gsm8k_reasoning(answer_text: str) -> str:
         return parts[0].strip()
     return answer_text.strip()
 
+import re
+
+def compress_gsm8k_reasoning(reasoning: str) -> str:
+    """
+    Convert GSM8K reasoning into a compact equation-only form.
+
+    Examples:
+      "Natalia sold 48/2 = 24 clips in May." -> "48/2=24"
+      "Betty has only 100 / 2 = $50." -> "100/2=50"
+      "Working 50 minutes, she earned 0.2 x 50 = $10." -> "0.2x50=10"
+    """
+    lines = [line.strip() for line in reasoning.split("\n") if line.strip()]
+    equations = []
+
+    for line in lines:
+        # Skip tags
+        if line.startswith("<think>") or line.startswith("</think>") or line.startswith("<answer>"):
+            continue
+
+        # 1. Prefer GSM8K calculator annotations
+        ann_matches = re.findall(r"<<(.*?)>>", line)
+        if ann_matches:
+            for eq in ann_matches:
+                eq = eq.replace("$", "").replace(",", "")
+                eq = eq.replace("×", "x").replace("X", "x")
+                eq = re.sub(r"\s+", "", eq)
+                equations.append(eq)
+            continue
+
+        clean = line.replace("$", "").replace(",", "").strip().rstrip(".")
+        clean = clean.replace("×", "x").replace("X", "x")
+
+        if "=" not in clean:
+            continue
+
+        left, right = clean.split("=", 1)
+
+        # 2. Extract the last equation-like expression on the left
+        # allow digits, decimals, parentheses, + - * / x
+        # and capture something that actually looks like an expression
+        candidates = re.findall(
+            r'(?<![A-Za-z])(?:\d+(?:\.\d+)?|\(\s*[-+]?\d+(?:\.\d+)?\s*\))'
+            r'(?:\s*[-+*/x]\s*(?:\d+(?:\.\d+)?|\(\s*[-+]?\d+(?:\.\d+)?\s*\)))*',
+            left
+        )
+        if not candidates:
+            continue
+
+        lhs = candidates[-1]
+        lhs = re.sub(r"\s+", "", lhs)
+
+        # 3. Extract only the first numeric value on the right
+        right_match = re.search(r"-?\d+(?:\.\d+)?", right)
+        if not right_match:
+            continue
+        rhs = right_match.group(0)
+
+        equations.append(f"{lhs}={rhs}")
+
+    if not equations:
+        short = re.sub(r"<<.*?>>", "", reasoning)
+        short = re.sub(r"<.*?>", "", short)
+        short = re.sub(r"\s+", " ", short).strip()
+        return short
+
+    return ", ".join(equations)
 
 # ---------------------------------------------------------------------------
 # Prompt formatting
@@ -225,6 +291,88 @@ def prepare_dpo_dataset_from_sft_outputs(path: str) -> Dataset:
         }
 
     ds = ds.map(keep_fields, remove_columns=ds.column_names)
+
+    ds = ds.filter(
+        lambda x: x["rejected"].strip() != "" and x["rejected"].strip() != x["chosen"].strip()
+    )
+
+    return ds
+
+def load_jsonl_dataset(path: str) -> Dataset:
+    records = []
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            records.append(json.loads(line))
+    return Dataset.from_list(records)
+
+def build_dpo_example_short_chosen(example, tokenizer):
+    question = example["question"]
+    answer_text = example["answer"]
+
+    full_reasoning = extract_gsm8k_reasoning(answer_text)
+    answer = extract_gsm8k_answer(answer_text)
+
+    short_reasoning = compress_gsm8k_reasoning(full_reasoning)
+
+    prompt = format_chat_prompt(question, tokenizer)
+
+    chosen = f"<think>\n{short_reasoning}\n</think>\n<answer>{answer}</answer>"
+    rejected = format_sft_target(full_reasoning, make_wrong_answer(answer))
+
+    return {
+        "prompt": prompt,
+        "chosen": chosen,
+        "rejected": rejected,
+        "answer": answer,
+    }
+
+def prepare_dpo_dataset_short_chosen(
+    tokenizer,
+    split: str = "train",
+    max_samples: int = None,
+) -> Dataset:
+    """
+    Prepare GSM8K for DPO with:
+      - chosen: compressed GT reasoning + correct answer
+      - rejected: compressed GT reasoning + synthetic wrong answer
+    """
+    ds = load_gsm8k(split, max_samples)
+
+    ds = ds.map(
+        lambda example: build_dpo_example_short_chosen(example, tokenizer),
+        remove_columns=ds.column_names,
+    )
+    return ds
+
+def prepare_dpo_dataset_from_sft_outputs_short_chosen(path: str) -> Dataset:
+    """
+    DPO dataset:
+      - chosen: compressed ground-truth reasoning + correct answer
+      - rejected: SFT model output
+    """
+
+    ds = load_jsonl_dataset(path)
+
+    def convert_example(example):
+        chosen = example["chosen"]
+
+        # parse chosen into reasoning and answer
+        think_match = re.search(r"<think>\s*(.*?)\s*</think>", chosen, re.DOTALL)
+        answer_match = re.search(r"<answer>\s*(.*?)\s*</answer>", chosen, re.DOTALL)
+
+        reasoning = think_match.group(1).strip() if think_match else ""
+        answer = answer_match.group(1).strip() if answer_match else ""
+
+        short_reasoning = compress_gsm8k_reasoning(reasoning)
+        short_chosen = f"<think>\n{short_reasoning}\n</think>\n<answer>{answer}</answer>"
+
+        return {
+            "prompt": example["prompt"],
+            "chosen": short_chosen,
+            "rejected": example["rejected"],
+        }
+
+    ds = ds.map(convert_example, remove_columns=ds.column_names)
 
     ds = ds.filter(
         lambda x: x["rejected"].strip() != "" and x["rejected"].strip() != x["chosen"].strip()

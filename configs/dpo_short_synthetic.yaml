@@ -22,9 +22,8 @@ model_init:
   checkpoint_path: "/Data/masayo.tomita/Tiny_Reasoner/results/sft_baseline/final"
 
 data:
-  dpo_source: "sft_outputs"
-  train_pair_path: "data/dpo/sft_rejected_train.jsonl"
+  dpo_source: "synthetic_short_chosen"
   max_train_samples: null
 
-output_dir: "/Data/masayo.tomita/Tiny_Reasoner/results/dpo_sft_rejected"
-experiment_name: "dpo_sft_rejected"
+output_dir: "/Data/masayo.tomita/Tiny_Reasoner/results/dpo_short_chosen_synthetic"
+experiment_name: "dpo_short_chosen_synthetic"
