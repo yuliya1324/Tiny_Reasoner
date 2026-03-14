@@ -49,3 +49,11 @@ Thumbs.db
 # Results
 tmp/
 results/
+
+# Test
+src/test*.py
+src/compare_*.py
+src/check_*.py
+
+# Run
+scripts/run_*.py
