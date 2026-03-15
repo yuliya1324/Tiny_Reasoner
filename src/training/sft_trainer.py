@@ -34,7 +34,7 @@ def train_sft(cfg: dict):
     # GSM8K has no official validation split, so we carve off the last 200 train examples.
     eval_dataset = prepare_sft_dataset(
         tokenizer,
-        split="train[7273:]",   # last 200 of 7473 train examples
+        split="test",   # last 200 of 7473 train examples
         max_samples=200,
         max_length=cfg["data"].get("max_length", 512),
     )

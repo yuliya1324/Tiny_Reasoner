@@ -23,8 +23,7 @@ from src.utils.data_utils import load_gsm8k, format_chat_prompt
 def generate_responses_batched(model, tokenizer, prompts: list[str],
                                 max_new_tokens: int = 512,
                                 temperature: float = 0.1,
-                                batch_size: int = 16,
-                                max_prompt_length: int = 512) -> list[str]:
+                                batch_size: int = 16) -> list[str]:
     """Generate responses for a list of prompts in batches."""
     all_responses = []
 
@@ -34,8 +33,6 @@ def generate_responses_batched(model, tokenizer, prompts: list[str],
             batch_prompts,
             return_tensors="pt",
             padding=True,
-            truncation=True,
-            max_length=max_prompt_length,
         ).to(model.device)
 
         with torch.no_grad():
@@ -63,8 +60,7 @@ def generate_responses_batched(model, tokenizer, prompts: list[str],
 def evaluate_model(model, tokenizer, split: str = "test",
                     max_samples: Optional[int] = None,
                     max_new_tokens: int = 512,
-                    batch_size: int = 16,
-                    max_prompt_length: int = 512) -> dict:
+                    batch_size: int = 16) -> dict:
     """
     Run evaluation on GSM8K test set.
 
@@ -85,7 +81,7 @@ def evaluate_model(model, tokenizer, split: str = "test",
     tokenizer.padding_side = "left"
     responses = generate_responses_batched(
         model, tokenizer, prompts, max_new_tokens,
-        batch_size=batch_size, max_prompt_length=max_prompt_length,
+        batch_size=batch_size,
     )
     tokenizer.padding_side = original_padding_side
 
@@ -158,8 +154,7 @@ def main():
     model, tokenizer = load_model_from_checkpoint(args.checkpoint, cfg)
 
     eval_output = evaluate_model(model, tokenizer, args.split, args.max_samples,
-                                 batch_size=args.batch_size,
-                                 max_prompt_length=cfg["data"].get("max_length", 512))
+                                 batch_size=args.batch_size)
 
     print("\n=== Evaluation Results ===")
     for k, v in eval_output["metrics"].items():
