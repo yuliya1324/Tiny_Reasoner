@@ -86,8 +86,23 @@ def load_model_and_tokenizer(cfg: dict, for_training: bool = True):
 
 
 def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
-    """Load a fine-tuned LoRA model from a checkpoint."""
+    """Load a fine-tuned LoRA model from a checkpoint (local path only)."""
+    import os
     from peft import PeftModel
+
+    # Resolve to absolute path so PEFT loads from disk, not Hub
+    path = os.path.abspath(os.path.expanduser(checkpoint_path))
+    if not os.path.isdir(path):
+        raise FileNotFoundError(
+            f"SFT checkpoint not found at '{path}'. "
+            "Copy the SFT checkpoint to this machine, e.g. "
+            "scp -r other_machine:/path/to/results/sft_baseline/final /Data/yash.bhardwaj/Tiny_Reasoner/results/sft_baseline/"
+        )
+    adapter_config = os.path.join(path, "adapter_config.json")
+    if not os.path.isfile(adapter_config):
+        raise FileNotFoundError(
+            f"Not a valid PEFT checkpoint: missing adapter_config.json in '{path}'."
+        )
 
     model_name = cfg["model"]["name"]
     tokenizer = load_tokenizer(model_name)
@@ -99,7 +114,12 @@ def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
         torch_dtype=torch.float16,
         trust_remote_code=True,
     )
-    model = PeftModel.from_pretrained(model, checkpoint_path)
+    # Must be called before loading PEFT adapters so gradients flow through
+    # the 4-bit base layers correctly during any subsequent training.
+    model = prepare_model_for_kbit_training(model)
+    # is_trainable=True keeps adapters in training mode and casts them to float16
+    # so the GradScaler fp16 hooks fire correctly during GRPO training.
+    model = PeftModel.from_pretrained(model, path, is_trainable=True)
     model.eval()
 
     return model, tokenizer

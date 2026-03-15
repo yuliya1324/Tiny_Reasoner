@@ -33,7 +33,6 @@ def generate_responses_batched(model, tokenizer, prompts: list[str],
             batch_prompts,
             return_tensors="pt",
             padding=True,
-            truncation=True,
         ).to(model.device)
 
         with torch.no_grad():
@@ -76,12 +75,15 @@ def evaluate_model(model, tokenizer, split: str = "test",
     ground_truths = [extract_gsm8k_answer(ex["answer"]) for ex in ds]
     prompts = [format_chat_prompt(q, tokenizer) for q in questions]
 
-    # Batched generation
-    tokenizer.padding_side = "left"  # left-pad for batched generation
-    # print(f"Generating responses for {len(prompts)} examples (batch_size={batch_size})...")
+    # Batched generation — temporarily switch to left-padding (required for generation),
+    # then restore original padding side so the tokenizer is not permanently mutated.
+    original_padding_side = tokenizer.padding_side
+    tokenizer.padding_side = "left"
     responses = generate_responses_batched(
-        model, tokenizer, prompts, max_new_tokens, batch_size=batch_size,
+        model, tokenizer, prompts, max_new_tokens,
+        batch_size=batch_size,
     )
+    tokenizer.padding_side = original_padding_side
 
     # Verify all results
     results = []
@@ -161,7 +163,7 @@ def main():
     if args.output:
         save_eval_results(eval_output, args.output)
     else:
-        out = f"results/eval_{args.checkpoint.replace('/', '_')}_{args.split}.json"
+        out = f"results/eval_{args.checkpoint.replace('/', '_').replace(' ', '_')}_{args.split}.json"
         save_eval_results(eval_output, out)
 
 
