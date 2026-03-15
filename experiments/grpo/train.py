@@ -1,14 +1,15 @@
 """
-SFT Baseline experiment — entry point.
+GRPO experiment — entry point.
 
 Usage:
-    python -m experiments.sft_baseline.train --config configs/sft.yaml
-    python -m experiments.sft_baseline.train  # uses defaults
+    python -m experiments.grpo.train --config configs/grpo.yaml
+    python -m experiments.grpo.train  # uses defaults
 """
 
 import argparse
 import yaml
 from pathlib import Path
+from src.training.grpo_trainer import train_grpo
 
 
 def load_config(config_path: str = None) -> dict:
@@ -31,26 +32,25 @@ def load_config(config_path: str = None) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train SFT baseline")
-    parser.add_argument("--config", type=str, default="configs/sft.yaml",
+    parser = argparse.ArgumentParser(description="Train GRPO")
+    parser.add_argument("--config", type=str, default="configs/grpo.yaml",
                         help="Path to experiment config YAML")
     parser.add_argument("--no_wandb", action="store_true",
                         help="Disable W&B logging")
+    parser.add_argument("--resume_from_checkpoint", type=str, default=None,
+                        help="Resume from this checkpoint path, or 'true' to use latest in output_dir")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-
-    # Pin all random seeds for reproducibility
-    from src.utils.seed import set_seed
-    set_seed(cfg.get("seed", 42))
+    if args.resume_from_checkpoint is not None:
+        cfg["resume_from_checkpoint"] = args.resume_from_checkpoint if args.resume_from_checkpoint.lower() != "true" else True
 
     if args.no_wandb:
         import os
         os.environ["WANDB_DISABLED"] = "true"
 
-    from src.training.sft_trainer import train_sft
-    trainer = train_sft(cfg)
-    print("SFT training complete!")
+    trainer = train_grpo(cfg)
+    print("GRPO training complete!")
 
 
 if __name__ == "__main__":

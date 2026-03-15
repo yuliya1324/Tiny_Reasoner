@@ -41,7 +41,6 @@ def generate_responses_batched(
             batch_prompts,
             return_tensors="pt",
             padding=True,
-            truncation=True,
         ).to(model.device)
 
         with torch.no_grad():
@@ -54,7 +53,7 @@ def generate_responses_batched(
                 pad_token_id=tokenizer.pad_token_id,
             )
 
-        # Decode only the newly generated tokens
+        # Decode only the generated part for each example
         input_len = inputs["input_ids"].shape[1]
         for output in outputs:
             generated = output[input_len:]
@@ -85,14 +84,15 @@ def evaluate_model(
     ground_truths = [extract_gsm8k_answer(ex["answer"]) for ex in ds]
     prompts = [format_chat_prompt(q, tokenizer) for q in questions]
 
+    # Batched generation — temporarily switch to left-padding (required for generation),
+    # then restore original padding side so the tokenizer is not permanently mutated.
+    original_padding_side = tokenizer.padding_side
     tokenizer.padding_side = "left"
     responses = generate_responses_batched(
-        model,
-        tokenizer,
-        prompts,
-        max_new_tokens=max_new_tokens,
+        model, tokenizer, prompts, max_new_tokens,
         batch_size=batch_size,
     )
+    tokenizer.padding_side = original_padding_side
 
     results = []
     for idx, (question, gt, response) in enumerate(zip(questions, ground_truths, responses)):
@@ -182,6 +182,9 @@ def main():
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
 
+    from src.utils.seed import set_seed
+    set_seed(cfg.get("seed", 42))
+
     from src.models.loader import load_model_from_checkpoint
     model, tokenizer = load_model_from_checkpoint(args.checkpoint, cfg)
 
@@ -200,7 +203,7 @@ def main():
     if args.output:
         save_eval_results(eval_output, args.output)
     else:
-        out = f"results/eval_{args.checkpoint.replace('/', '_')}_{args.split}.json"
+        out = f"results/eval_{args.checkpoint.replace('/', '_').replace(' ', '_')}_{args.split}.json"
         save_eval_results(eval_output, out)
 
 

@@ -1,0 +1,24 @@
+experiment_name: "grpo_sparse"
+
+grpo:
+  num_generations: 4          # keep modest: more = much slower steps, ETA can go up
+  per_device_train_batch_size: 4  # sweet spot: fewer steps, step time not huge
+  gradient_accumulation_steps: 4  # effective batch 16
+  learning_rate: 5.0e-6
+  num_train_epochs: 1
+  max_completion_length: 512  # 1024 → 512 to reduce activation memory
+  max_prompt_length: 256
+  temperature: 1.0
+  beta: 0.0
+  loss_type: "dr_grpo"
+  bf16: false   # use fp16 to match 4-bit quant model (loader uses float16)
+  fp16: true
+  use_liger_loss: false  # set true and pip install liger-kernel to use Liger loss
+  gradient_checkpointing: true
+  logging_steps: 10
+  save_steps: 200
+
+reward_type: "sparse"  # options: sparse, format, composite
+sft_checkpoint: null    # path to SFT checkpoint, e.g. /Data/yash.bhardwaj/Tiny_Reasoner/results/sft_baseline/final
+
+output_dir: "/Data/yash.bhardwaj/Tiny_Reasoner/results/grpo"

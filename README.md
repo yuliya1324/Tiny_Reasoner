@@ -1,4 +1,4 @@
-# Tiny Reasoner — GRPO vs. PPO for Teaching a 0.5B Model to Think
+# Tiny Reasoner — DPO vs. PPO vs. GRPO for Teaching a 0.5B Model to Think
 
 > RL Course Project: Investigating whether GRPO can teach a small language model
 > chain-of-thought reasoning on math problems, compared against PPO, DPO, and SFT.
@@ -10,167 +10,81 @@
 pip install -r requirements.txt
 
 # 2. Run SFT baseline (change `output_dir` in `configs/sft.yaml`)
-python -m experiments.dpo.train --config configs/dpo.yaml
+python -m experiments.sft_baseline.train --config configs/sft.yaml
 
 # 3. Evaluate
-python -m src.evaluation.evaluate --checkpoint <path_to_results_dir>/results/dpo_baseline/final --split test --output <path_to_results_dir>/results/dpo_baseline/eval_test.json --batch_size 16
+python -m src.evaluation.evaluate --checkpoint <path_to_results_dir>/results/sft_baseline/final --split test --output <path_to_results_dir>/results/sft_baseline/eval_test.json --batch_size 16
 ```
 
-## DPO Experiments
+## Project Structure
 
-DPO (Direct Preference Optimization) is applied on top of the **SFT baseline model**.  
-The goal is to improve answer correctness by training the model to prefer **correct reasoning and answers** over incorrect ones.
-
-Two preference dataset designs were explored.
-
-| Method | $beta$ | epoch|  Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
-|--------|:--------:| :--------:| :--------:|:----------------:|:-------------:|:-----------------:|
-| SFT Baseline | - | - | 0.2995 | 0.9977 | 0.9977 | 46.5830 |
-| DPO - Synthetic Rejected Responses | 0.1 | 1 | 0.0068 | 0.0326 | 0.7968 | 39.5186 |
-| DPO - SFT-Generated Rejected Responses| 0.1 | 1 | 0.2024 | 0.9666 | 0.9689 | 81.5201 |
-| DPO - SFT-Generated Rejected Responses | 0.1 | 3 | 0.0629 | 0.6384 | 0.8893 | 103.3397 |
-| DPO - Short chosen & SFT-Generated Rejected| 0.1 | 1 | 0.2540 | 0.9947 | 0.9879 | 38.9530 |
-| DPO - Short chosen & SFT-Generated Rejected| 0.1 | 3 | 0.2608 | 0.9932 | 0.9826 | 36.8741 |
-
-## DPO Baseline: Synthetic Rejected Answers
-
-### Motivation
-
-The SFT baseline showed:
-
-- **High reasoning usage** (`has_reasoning > 0.8`)
-- **Low answer accuracy** (`accuracy < 0.2`)
-
-Therefore, the initial DPO design focused on improving **final answer correctness** while keeping the reasoning unchanged.
-
-### Preference Pair Construction
-
-For each GSM8K training example:
-
-- **Chosen:** Ground truth reasoning and answer
-- **Rejected:** Same reasoning but with a **modified final answer**
-
-Only the numerical answer was altered.
-
-#### Wrong Answer Rule
-
-- Integer → `±max(round(10%), 1)`
-- Decimal → `±max(10%, 0.1)`
-- Randomly choose `+` or `-`
-- Fallback → append `_wrong`
-
-
-### Example
-
-**Chosen**
 ```
+Tiny_Reasoner/
+├── configs/                    # YAML configs for all experiments
+│   ├── base.yaml               # Shared defaults (model, data, tokenizer)
+│   └── sft.yaml                # SFT baseline config
+│
+├── src/                        # Shared library code
+│   ├── models/loader.py        # Load Qwen2.5-0.5B with LoRA + 4-bit quant
+│   ├── training/               # Training loops (sft, grpo, ppo, dpo)
+│   ├── rewards/                # Reward functions (sparse, format, composite, pbrs)
+│   ├── evaluation/evaluate.py  # Accuracy, format adherence, reasoning quality
+│   └── utils/                  # Data loading, math verification
+│
+├── experiments/                # One folder per experiment
+│   └── sft_baseline/train.py
+│
+├── notebooks/analysis.ipynb    # Analysis and figures
+├── requirements.txt
+└── .gitignore
+```
+
+## What we use
+
+**Model**: `Qwen/Qwen2.5-0.5B-Instruct`
+
+It already has decent instruction following and some math ability. It's on HuggingFace and works out of the box with TRL + LoRA + 4-bit quantization.
+
+**Dataset**: **GSM8K** (`openai/gsm8k` on HuggingFace)
+
+7.5k train / 1.3k test grade-school math problems with step-by-step solutions. It's the standard benchmark for math reasoning.
+
+The format we want the model to use:
+
+```text
 <think>
 Natalia sold 48/2 = 24 clips in May.
-Natalia sold 48+24 = 72 clips altogether in April and May.
+Natalia sold 48+24 = 72 clips altogether.
 </think>
 <answer>72</answer>
 ```
 
-**Rejected**
-```
-<think>
-Natalia sold 48/2 = 24 clips in May.
-Natalia sold 48+24 = 72 clips altogether in April and May.
-</think>
-<answer>79</answer>
-```
+**Metrics**:
 
-### Result
-Accuracy dropped significantly compared to the SFT baseline.
+- *Accuracy*: `check_answer()` parses the content inside `<answer>` tags and compares numerically against the ground truth.
+- *Format adherence*: Did it use the `<think>/<answer>` structure at all? (`has_correct_format()`).
+- *Has reasoning*: verifies that the content between `<think>` tags is at least the length of 5.
+- *Avg reasoning length*: How many words are inside the `<think>` tags? This tells you whether the model is actually "thinking" or just guessing (or the level of reward hacking with verbosity).
 
-**Example Output**
-```
-<think>
-The increase in value was 150% so that's 150/100 * 80,000 = $120,000
-He spent 80,000 + 50,000 = $130,000 on repairs So his profit was 130,000 - 120,000 = $10,000
-</think กรกฎาคม>
-honeymoon_trip = 10000 cost_of_house = 80000 repair_value_increase = 150/100 * 80000 = $120,000 Total cost of trip = 10000 + 80000 = $90,000 Profit = 90000 - 10000 = $80,000 </scratch>80000 80000
-</answer>80000
-```
-The model produces corrupted formatting and irrelevant tokens.
+## Results
 
-### Interpretation
-Although the DPO objective was successfully optimized during training, the synthetic preference pairs were too artificial. \
-Since the chosen and rejected responses differed only in the final numerical token, the model learned to avoid certain tokens rather than improving reasoning or answer correctness. \
-As a result, the generation distribution became unstable and formatting quality degraded.
+| Method | Reward | Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
+|--------|--------|:--------:|:----------------:|:-------------:|:-----------------:|
+| SFT Baseline | — | 0.2995 | 0.9977 | 0.9977 | 46.5830 |
+| DPO (WIP) | — | 0.2540 | 0.9947 | 0.9879 | 38.9530 |
+| GRPO | sparse | 0.4792 | 0.0000 | 0.0000 | 0.0000 |
+| GRPO from SFT | sparse | 0.3548 | 1.0000 | 1.0000 | 46.5216 |
+| GRPO format | format | 0.3245 | 0.9909 | 0.9962 | 22.1607 |
+| GRPO format from SFT | format | 0.3404 | 1.0000 | 0.9992 | 46.5125 |
+| GRPO composite | composite | 0.0425 | 1.0000 | 0.0000 | 1.0243 |
+| GRPO composite from SFT | composite | 0.3177 | 0.9985 | 0.9985 | 44.2077 |
 
----
+## Team Workflow
 
-## SFT-Generated Rejected Responses
-
-To address the limitations of the synthetic rejected answers, we constructed a new preference dataset using **SFT model outputs as rejected samples**.
-
-Instead of modifying the final answer artificially, we generate responses from the SFT model and use them as negative examples.
-
-For each GSM8K problem:
-
-- **Chosen:** Ground truth reasoning and answer  
-- **Rejected:** Response generated by the SFT model
-
-This approach produces **more realistic preference pairs**, because the rejected responses reflect the **actual mistakes made by the model**.
-
-These mistakes typically include:
-
-- incorrect reasoning steps  
-- incorrect final answers  
-- minor formatting issues  
-
-This provides a more meaningful learning signal for DPO compared to synthetic perturbations.
-
-
-### Example
-
-**Chosen**
-```
-<think>
-In the beginning, Betty has only 100 / 2 = $50.
-Betty's grandparents gave her 15 * 2 = $30.
-This means Betty needs 100 - 50 - 30 - 15 = $5 more.
-</think>
-<answer>5</answer>
-```
-
-**Rejected (SFT Output)**
-```
-<think>
-Betty's parents gave her 15 + 2 * 15 = $60.
-So in total Betty has 60 + 15 = $75.
-Thus she still needs 100 - 75 = $25.
-</think>
-<answer>25</answer>
-```
-
-### Result
-Accuracy dropped compared to the SFT baseline by increasing train epochs.
--> The model learnt longer output is better, and format degradation has been observed.
-
-**Example Output**
-```
-<think>
-First find the number of eggs Janet's ducks lay for breakfast: 16 eggs/day * 3 eggs/meal = 16 eggs
-Then find the total number of eggs baked every day: 16 eggs/day + 4 eggs/buffet = 16 eggs
-Find the number of eggs Janet's ducks sell after baking: 16 eggs/day * 4 eggs/duck = 64 eggs
-Find the number of eggs Janet's ducks sell after the birds eat: 16 eggs/day + 16 eggs * 16 eggs/duck = 256 eggs
-Find the number of eggs Janet's ducks sell for the farmers' market every day: 256 eggs * $2/16 eggs = $20
-Find the number of eggs Janet's ducks lay every day: 16 eggs/day + 16 eggs * 16 eggs/duck = 256 eggs
-The ducks lay 16 eggs, 16 eggs are eaten for breakfast, 16 eggs are baked for baking, 16 eggs are sold to the farmers' market for selling, and 16 eggs are sold to the birds for eating 256 eggs
-```
-
-## Short Chosen
-
-**Example**
-```
-Problem: Natalia sold clips to 48 of her friends in April, and then she sold half as many clips in May. How many clips did Natalia sell altogether in April and May?<|im_end|>
-<|im_start|>assistant
-
-CHOSEN:
- <think>
-48/2=24, 48+24=72
-</think>
-<answer>72</answer>
-```
+1. Everyone runs `sft_baseline` to verify setup works on their GPU (see Quick Start and change `output_dir` in `configs/sft.yaml`)
+2. Each member develops their experiments on a feature branch
+    - Use `configs` directory to store the configs for your experiments
+    -  Use `experiments/your_experiment` for your experiment code
+    - Add the function to prepare a dataset for your experiment `prepare_<your_exp>_dataset` to  `src/utils/data_utils.py` if needed 
+    - Add your reward function to `src/rewards`
+3. Merge into `main` once experiments complete

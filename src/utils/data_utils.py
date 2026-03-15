@@ -8,9 +8,18 @@ GSM8K format:
 We convert to our prompt format with <think>/<answer> tags.
 """
 
+import os
 import re
 import json
+from pathlib import Path
 from datasets import load_dataset, Dataset
+
+def _ensure_writable_hf_cache():
+    """Use a HuggingFace cache under the project so we have write access (avoids PermissionError when /Data is read-only)."""
+    cache_root = Path(__file__).resolve().parents[2] / ".cache" / "huggingface"
+    cache_root.mkdir(parents=True, exist_ok=True)
+    os.environ["HF_HOME"] = str(cache_root)
+    os.environ["HF_DATASETS_CACHE"] = str(cache_root / "datasets")
 
 # ---------------------------------------------------------------------------
 # Answer extraction from GSM8K format
@@ -214,6 +223,7 @@ def build_dpo_example(example, tokenizer):
 
 def load_gsm8k(split: str = "train", max_samples: int = None) -> Dataset:
     """Load GSM8K dataset from HuggingFace."""
+    _ensure_writable_hf_cache()
     ds = load_dataset("openai/gsm8k", "main", split=split)
     if max_samples is not None:
         ds = ds.select(range(min(max_samples, len(ds))))
@@ -277,7 +287,6 @@ def load_jsonl_dataset(path: str) -> Dataset:
             records.append(json.loads(line))
     return Dataset.from_list(records)
 
-
 def prepare_dpo_dataset_from_sft_outputs(path: str) -> Dataset:
     ds = load_jsonl_dataset(path)
 
@@ -297,13 +306,6 @@ def prepare_dpo_dataset_from_sft_outputs(path: str) -> Dataset:
     )
 
     return ds
-
-def load_jsonl_dataset(path: str) -> Dataset:
-    records = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            records.append(json.loads(line))
-    return Dataset.from_list(records)
 
 def build_dpo_example_short_chosen(example, tokenizer):
     question = example["question"]
@@ -378,4 +380,28 @@ def prepare_dpo_dataset_from_sft_outputs_short_chosen(path: str) -> Dataset:
         lambda x: x["rejected"].strip() != "" and x["rejected"].strip() != x["chosen"].strip()
     )
 
+    return ds
+
+def prepare_grpo_dataset(split: str = "train", max_samples: int = None) -> Dataset:
+    """
+    Prepare GSM8K for GRPO: each example has a chat-message prompt + ground-truth answer.
+
+    GRPOTrainer expects:
+      - "prompt": list of message dicts (conversational format)
+      - "answer": ground-truth number string (passed to reward functions via kwargs)
+
+    Returns a HuggingFace Dataset.
+    """
+    ds = load_gsm8k(split, max_samples)
+
+    def format_example(example):
+        question = example["question"]
+        answer = extract_gsm8k_answer(example["answer"])
+        prompt = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"Problem: {question}"},
+        ]
+        return {"prompt": prompt, "answer": answer}
+
+    ds = ds.map(format_example, remove_columns=ds.column_names)
     return ds
