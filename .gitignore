@@ -48,7 +48,8 @@ Thumbs.db
 
 # Results
 tmp/
-results/
+plot/
+
 
 # Test
 src/test*.py
