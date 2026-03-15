@@ -48,11 +48,11 @@ def generate_responses_batched(model, tokenizer, prompts: list[str],
                 pad_token_id=tokenizer.pad_token_id,
             )
 
-        # Decode only the generated part for each example.
-        # With left-padding the full padded length (not just real-token count)
-        # must be skipped, otherwise trailing prompt tokens leak into output.
+        # Decode only the generated part for each example
         input_len = inputs["input_ids"].shape[1]
         for j, output in enumerate(outputs):
+            # prompt_len = inputs["attention_mask"][j].sum().item()
+            # generated = output[prompt_len:]
             generated = output[input_len:]
             text = tokenizer.decode(generated, skip_special_tokens=True)
             all_responses.append(text)
@@ -150,6 +150,9 @@ def main():
     import yaml
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+
+    from src.utils.seed import set_seed
+    set_seed(cfg.get("seed", 42))
 
     from src.models.loader import load_model_from_checkpoint
     model, tokenizer = load_model_from_checkpoint(args.checkpoint, cfg)

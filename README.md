@@ -1,4 +1,4 @@
-# Tiny Reasoner — GRPO vs. PPO for Teaching a 0.5B Model to Think
+# Tiny Reasoner — DPO vs. PPO vs. GRPO for Teaching a 0.5B Model to Think
 
 > RL Course Project: Investigating whether GRPO can teach a small language model
 > chain-of-thought reasoning on math problems, compared against PPO, DPO, and SFT.
@@ -70,7 +70,8 @@ Natalia sold 48+24 = 72 clips altogether.
 
 | Method | Reward | Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
 |--------|--------|:--------:|:----------------:|:-------------:|:-----------------:|
-| SFT Baseline | — | 0.1077 | 0.9992 | 0.7528 | 31.7513 |
+| SFT Baseline | — | 0.2995 | 0.9977 | 0.9977 | 46.5830 |
+| DPO (WIP) | — | 0.2540 | 0.9947 | 0.9879 | 38.9530 |
 | GRPO | sparse | 0.4792 | 0.0000 | 0.0000 | 0.0000 |
 | GRPO from SFT | sparse | 0.3548 | 1.0000 | 1.0000 | 46.5216 |
 | GRPO format | format | 0.3245 | 0.9909 | 0.9962 | 22.1607 |
