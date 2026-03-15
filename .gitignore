@@ -43,3 +43,8 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# UV env
+.python-version
+pyproject.toml
+uv.lock

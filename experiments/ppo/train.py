@@ -9,7 +9,7 @@ Usage:
 import argparse
 import yaml
 from pathlib import Path
-from src.training.ppo_trainer_new import train_ppo
+from src.training.ppo_trainer import train_ppo
 
 
 def load_config(config_path: str = None) -> dict:

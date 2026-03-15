@@ -64,7 +64,7 @@ class GroundTruthPPOTrainer(PPOTrainer):
                 # Prompt tokens are the first context_length positions per sample
                 prompt_ids = query_responses[:, :context_length]
                 prompts = tokenizer.batch_decode(prompt_ids, skip_special_tokens=True)
-                ground_truths = [gt_lookup.get(p.strip(), "") for p in prompts]
+                ground_truths = [gt_lookup.get(p, "") for p in prompts]
                 reward_wrapper.set_ground_truths(ground_truths)
 
             return original(model, query_responses, pad_token_id, context_length)

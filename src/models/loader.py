@@ -8,7 +8,7 @@ Usage:
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, AutoModelForSequenceClassification
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType, PeftModel
 
 
 def get_bnb_config():
@@ -76,7 +76,7 @@ def load_model_and_tokenizer(cfg: dict, for_training: bool = True):
 
     if for_training:
         if use_quant:
-            model = prepare_model_for_kbit_training(model)
+            model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
         lora_config = get_lora_config(cfg)
         model = get_peft_model(model, lora_config)
         model.print_trainable_parameters()
@@ -84,25 +84,56 @@ def load_model_and_tokenizer(cfg: dict, for_training: bool = True):
     return model, tokenizer
 
 
-def load_model_from_checkpoint(checkpoint_path: str, cfg: dict, for_training: bool = False):
+def load_model_from_checkpoint(checkpoint_path: str, cfg: dict, peft: bool = True):
     """Load a fine-tuned LoRA model from a checkpoint."""
-
     model_name = cfg["model"]["name"]
-    tokenizer = load_tokenizer(model_name)
+    base_model_name = cfg["model"].get("base_name", model_name)
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        quantization_config=get_bnb_config(),
-        device_map="auto",
-        torch_dtype=torch.float16,
-        trust_remote_code=True,
-    )
-    if for_training:
-        from peft import PeftModel
+    tokenizer = load_tokenizer(base_model_name)
+
+    if peft:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            # quantization_config=get_bnb_config(),
+            device_map="auto",
+            torch_dtype=torch.bfloat16,      
+            trust_remote_code=True,
+        )
         model = PeftModel.from_pretrained(model, checkpoint_path)
-    
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            checkpoint_path,
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
+            trust_remote_code=True,
+        )
+    model.config.pad_token_id = model.config.eos_token_id
     model.eval()
     return model, tokenizer
+
+def add_new_adapter(model, cfg, adapter_name):
+    """ Add a new adapter on top of the model. Keep
+    default adapter and freeze it.
+    """
+    lora_config = get_lora_config(cfg)
+    model.add_adapter(adapter_name, lora_config)
+    model.base_model.set_adapter(["default", adapter_name])
+    for name, param in model.named_parameters():
+        if "lora_" in name and ".default." in name:
+            param.requires_grad = False    
+    model.print_trainable_parameters()
+    return model
+
+def load_adapters(model, checkpoint, adapters):
+    """ Load non-default adapters
+    """
+    for adapter in adapters:
+        model.load_adapter(
+            checkpoint,
+            adapter_name=adapter
+        )
+    model.base_model.set_adapter(["default"] + adapters)
+    return model
 
 def load_value_model(cfg: dict) -> torch.nn.Module:
     model_name = cfg["model"]["name"]

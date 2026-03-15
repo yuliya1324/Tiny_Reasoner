@@ -12,10 +12,17 @@ Ground truths are injected per-batch by GroundTruthPPOTrainer (see custom_ppo_tr
 
 from __future__ import annotations
 
+import re
+
 import torch
 import torch.nn as nn
 from types import SimpleNamespace
 from typing import Callable
+
+import src.rewards.sparse as r
+from src.rewards.token_level import token_level_reward_with_format
+from src.utils.math_verify import extract_answer_from_response
+from src.utils.data_utils import extract_gsm8k_answer
 
 
 class _TokenPassthroughBackbone(nn.Module):
@@ -56,25 +63,42 @@ class RuleBasedRewardWrapper(nn.Module):
 
     def __init__(
         self,
-        reward_fn: Callable[[str, str], float],
+        reward_fn: str,
+        reward_fn_kwargs: dict,
         tokenizer,
+        gt_lookup,
     ):
         super().__init__()
-        self.reward_fn = reward_fn
+
+        funcs = {
+            "sparse": r.sparse_reward,
+            "format_shaped": r.format_shaped_reward,
+            "composite": r.composite_reward,
+            "intermediate_calc": token_level_reward_with_format
+        }
+
+        self.reward_fn_str = reward_fn
+        self.reward_fn = funcs[reward_fn]
+        self.reward_fn_kwargs = reward_fn_kwargs
         self.tokenizer = tokenizer
         self.backbone = _TokenPassthroughBackbone()
         self._ground_truths: list[str] | None = None
-
-    # ------------------------------------------------------------------
-    # Called by GroundTruthPPOTrainer before each get_reward() invocation
-    # ------------------------------------------------------------------
-
-    def set_ground_truths(self, ground_truths: list[str]) -> None:
-        self._ground_truths = ground_truths
+        self.gt_lookup = gt_lookup
 
     # ------------------------------------------------------------------
     # TRL interface
     # ------------------------------------------------------------------
+    def calculate_reward(
+        self, 
+        response_encoded=None, 
+        response_decoded=None,
+        gt=None,
+    ):
+        if self.reward_fn_str == "intermediate_calc":
+            return self.reward_fn([response_encoded], self.tokenizer, gt_texts=[gt], **self.reward_fn_kwargs)
+        else:
+            return self.reward_fn(response_decoded, extract_gsm8k_answer(gt), **self.reward_fn_kwargs)
+
 
     def score(self, hidden_states: torch.Tensor) -> torch.Tensor:
         """
@@ -87,19 +111,33 @@ class RuleBasedRewardWrapper(nn.Module):
             (B, T, 1) reward tensor. TRL picks the value at the last non-pad position,
             so we broadcast the same scalar across all T positions.
         """
-        if self._ground_truths is None:
-            raise RuntimeError(
-                "Ground truths not set. Make sure you are using GroundTruthPPOTrainer, "
-                "which automatically calls set_ground_truths() before each reward step."
-            )
-
-        input_ids = self.backbone._last_input_ids  # (B, T)
+        input_ids = hidden_states.int().squeeze(-1)
         texts = self.tokenizer.batch_decode(input_ids, skip_special_tokens=True)
-
+        
+        prompts = [re.search(r"system.*?assistant\n", t, re.DOTALL) for t in texts]
+        responses = [texts[i][prompts[i].end():] for i in range(len(texts))]
+        prompts = [p.group(0) for p in prompts]
+        
+        gts_pred = [self.gt_lookup[p] for p in prompts]
         rewards = [
-            self.reward_fn(text, gt)
-            for text, gt in zip(texts, self._ground_truths)
+            self.calculate_reward(input_ids[j], responses[j], gts_pred[j])
+            for j in range(len(responses))
         ]
+
+        import random
+        rand_idx = random.randint(0, len(texts)-1)
+
+        print("  Prompt  ".center(30, "#"))
+        print(prompts[rand_idx])
+        print("  Response  ".center(30, "#"))
+        print(responses[rand_idx])
+        print("  Predicted  ".center(30, "#"))
+        print(extract_answer_from_response(responses[rand_idx]))
+        print("  GT  ".center(30, "#"))
+        print(extract_gsm8k_answer(gts_pred[rand_idx]))
+        print("  Reward  ".center(30, "#"))
+        print(rewards[rand_idx])
+        print("#"*60)
 
         reward_tensor = torch.tensor(
             rewards, dtype=torch.float32, device=hidden_states.device

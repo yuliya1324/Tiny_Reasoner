@@ -124,16 +124,13 @@ def prepare_ppo_dataset_with_gt(tokenizer, split: str = "train", max_samples: in
 
     # Build lookup before removing columns
     gt_lookup = {
-        format_chat_prompt(ex["question"], tokenizer): extract_gsm8k_answer(ex["answer"])
+        tokenizer.decode(tokenizer.encode(format_chat_prompt(ex["question"], tokenizer)), skip_special_tokens=True): ex["answer"]
         for ex in ds
     }
 
     def tokenize(example):
         return tokenizer(
             format_chat_prompt(example["question"], tokenizer),
-            truncation=True,
-            max_length=max_length,
-            padding=False,
         )
 
     tokenized = ds.map(tokenize, remove_columns=ds.column_names)

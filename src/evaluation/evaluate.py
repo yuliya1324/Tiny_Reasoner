@@ -148,8 +148,9 @@ def main():
     from src.utils.seed import set_seed
     set_seed(cfg.get("seed", 42))
 
-    from src.models.loader import load_model_from_checkpoint
+    from src.models.loader import load_model_from_checkpoint, load_adapters
     model, tokenizer = load_model_from_checkpoint(args.checkpoint, cfg)
+    model = load_adapters(model, args.checkpoint, adapters=["ppo_adapter"])
 
     eval_output = evaluate_model(model, tokenizer, args.split, args.max_samples,
                                  batch_size=args.batch_size)
