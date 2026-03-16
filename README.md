@@ -1,7 +1,6 @@
 # Tiny Reasoner — DPO vs. PPO vs. GRPO for Teaching a 0.5B Model to Think
 
-> RL Course Project: Investigating whether GRPO can teach a small language model
-> chain-of-thought reasoning on math problems, compared against PPO, DPO, and SFT.
+> Investigating whether RL methods can teach a *tiny* language model chain-of-thought reasoning on math problems.
 
 ## Quick Start
 
@@ -21,8 +20,7 @@ python -m src.evaluation.evaluate --checkpoint <path_to_results_dir>/results/sft
 ```
 Tiny_Reasoner/
 ├── configs/                    # YAML configs for all experiments
-│   ├── base.yaml               # Shared defaults (model, data, tokenizer)
-│   └── sft.yaml                # SFT baseline config
+│   └── base.yaml               # Shared defaults (model, data, tokenizer)
 │
 ├── src/                        # Shared library code
 │   ├── models/loader.py        # Load Qwen2.5-0.5B with LoRA + 4-bit quant
@@ -32,7 +30,7 @@ Tiny_Reasoner/
 │   └── utils/                  # Data loading, math verification
 │
 ├── experiments/                # One folder per experiment
-│   └── sft_baseline/train.py
+│   └── sft_baseline/train.py   # Example of an SFT experiment
 │
 ├── notebooks/analysis.ipynb    # Analysis and figures
 ├── requirements.txt
@@ -81,13 +79,3 @@ Natalia sold 48+24 = 72 clips altogether.
 | GRPO format from SFT | format | 0.3404 | 1.0000 | 0.9992 | 46.5125 |
 | GRPO composite | composite | 0.0425 | 1.0000 | 0.0000 | 1.0243 |
 | GRPO composite from SFT | composite | 0.3177 | 0.9985 | 0.9985 | 44.2077 |
-
-## Team Workflow
-
-1. Everyone runs `sft_baseline` to verify setup works on their GPU (see Quick Start and change `output_dir` in `configs/sft.yaml`)
-2. Each member develops their experiments on a feature branch
-    - Use `configs` directory to store the configs for your experiments
-    -  Use `experiments/your_experiment` for your experiment code
-    - Add the function to prepare a dataset for your experiment `prepare_<your_exp>_dataset` to  `src/utils/data_utils.py` if needed 
-    - Add your reward function to `src/rewards`
-3. Merge into `main` once experiments complete
