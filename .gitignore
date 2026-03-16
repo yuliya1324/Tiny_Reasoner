@@ -6,6 +6,7 @@ results/
 *.ckpt
 
 # Data (downloaded by scripts/prepare_data.py)
+data/
 data/gsm8k/
 data/*.jsonl
 data/*.json
@@ -25,6 +26,7 @@ env/
 *.egg-info/
 dist/
 build/
+venv/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -43,6 +45,19 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Results
+tmp/
+plot/
+
+
+# Test
+src/test*.py
+src/compare_*.py
+src/check_*.py
+
+# Run
+scripts/run_*.py
 
 # UV env
 .python-version

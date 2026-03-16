@@ -1,0 +1,25 @@
+# GRPO with format reward, starting from SFT checkpoint
+experiment_name: "grpo_format_from_sft"
+
+grpo:
+  num_generations: 4
+  per_device_train_batch_size: 8
+  gradient_accumulation_steps: 4
+  learning_rate: 5.0e-6
+  num_train_epochs: 1
+  max_completion_length: 512
+  max_prompt_length: 256
+  temperature: 1.0
+  beta: 0.0
+  loss_type: "dr_grpo"
+  bf16: false
+  fp16: true
+  use_liger_loss: false
+  gradient_checkpointing: true
+  logging_steps: 10
+  save_steps: 200
+
+reward_type: "format"   # accuracy + format adherence
+sft_checkpoint: "/Data/yash.bhardwaj/Tiny_Reasoner/results/sft_baseline/final"
+
+output_dir: "/Data/yash.bhardwaj/Tiny_Reasoner/results/grpo_format_from_sft"
