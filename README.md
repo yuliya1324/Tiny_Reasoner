@@ -71,7 +71,7 @@ Natalia sold 48+24 = 72 clips altogether.
 | Method | Reward | Accuracy | Format Adherence | Has Reasoning | Avg Reasoning Len |
 |--------|--------|:--------:|:----------------:|:-------------:|:-----------------:|
 | SFT Baseline | — | 0.2995 | 0.9977 | 0.9977 | 46.5830 |
-| DPO (WIP) | — | 0.2540 | 0.9947 | 0.9879 | 38.9530 |
+| DPO | — | 0.2987 | 0.9977 | 0.9947 | 40.9856 |
 | GRPO | sparse | 0.4792 | 0.0000 | 0.0000 | 0.0000 |
 | GRPO from SFT | sparse | 0.3548 | 1.0000 | 1.0000 | 46.5216 |
 | GRPO format | format | 0.3245 | 0.9909 | 0.9962 | 22.1607 |
