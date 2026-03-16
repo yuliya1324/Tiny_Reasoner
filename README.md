@@ -19,20 +19,21 @@ python -m src.evaluation.evaluate --checkpoint <path_to_results_dir>/results/sft
 
 ```
 Tiny_Reasoner/
-├── configs/                    # YAML configs for all experiments
-│   └── base.yaml               # Shared defaults (model, data, tokenizer)
+├── configs/                        # YAML configs for all experiments
+│   └── base.yaml                   # Shared defaults (model, data, tokenizer)
 │
-├── src/                        # Shared library code
-│   ├── models/loader.py        # Load Qwen2.5-0.5B with LoRA + 4-bit quant
-│   ├── training/               # Training loops (sft, grpo, ppo, dpo)
-│   ├── rewards/                # Reward functions (sparse, format, composite, pbrs)
-│   ├── evaluation/evaluate.py  # Accuracy, format adherence, reasoning quality
-│   └── utils/                  # Data loading, math verification
+├── src/                            # Shared library code
+│   ├── models/loader.py            # Load Qwen2.5-0.5B with LoRA + 4-bit quant
+│   ├── training/                   # Training loops (sft, grpo, ppo, dpo)
+│   ├── rewards/                    # Reward functions (sparse, format, composite, pbrs)
+│   ├── evaluation/evaluate.py      # Accuracy, format adherence, reasoning quality
+│   └── utils/                      # Data loading, math verification
 │
-├── experiments/                # One folder per experiment
-│   └── sft_baseline/train.py   # Example of an SFT experiment
+├── experiments/                    # One folder per experiment
+│   └── sft_baseline/train.py       # Example of an SFT experiment
 │
-├── notebooks/analysis.ipynb    # Analysis and figures
+├── notebooks/
+│   └── Tiny_Resoner_notebook.ipynb # Analysis and figures
 ├── requirements.txt
 └── .gitignore
 ```
@@ -79,3 +80,5 @@ Natalia sold 48+24 = 72 clips altogether.
 | GRPO format from SFT | format | 0.3404 | 1.0000 | 0.9992 | 46.5125 |
 | GRPO composite | composite | 0.0425 | 1.0000 | 0.0000 | 1.0243 |
 | GRPO composite from SFT | composite | 0.3177 | 0.9985 | 0.9985 | 44.2077 |
+
+You can evaluate all models, draw plots and see generated answers in `notebooks/Tiny_Resoner_notebook.ipynb`.
