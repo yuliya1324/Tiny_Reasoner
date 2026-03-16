@@ -1,0 +1,36 @@
+# SFT Baseline — inherits from base.yaml
+training:
+  method: "ppo"
+  reward: "sparse"
+
+  num_epochs: 3
+  per_device_batch_size: 1
+  gradient_accumulation_steps: 16
+
+  learning_rate: 5.0e-6
+  adam_epsilon: 1.0e-5
+  weight_decay: 0.005
+  
+  lr_scheduler: "cosine"
+  warmup_steps: 100
+
+  max_grad_norm: 1.0
+  logging_steps: 10
+  save_steps: 50
+  eval_steps: 200
+  fp16: false
+  bf16: true
+
+  missing_eos_penalty: 0.2
+  gamma: 1.
+  kl_coef: 0.1
+  reward_kwargs:
+    reward: 1.
+
+model:
+  checkpoint: "results/sft_baseline/final"
+
+output_dir: "results/ppo_sparse_pretrained_final_reward"
+experiment_name: ppo_sparse_pretrained
+
+use_gradient_checkpointing;: false

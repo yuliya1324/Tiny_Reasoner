@@ -58,3 +58,8 @@ src/check_*.py
 
 # Run
 scripts/run_*.py
+
+# UV env
+.python-version
+pyproject.toml
+uv.lock

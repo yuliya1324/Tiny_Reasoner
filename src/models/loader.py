@@ -6,9 +6,11 @@ Usage:
     model, tokenizer = load_model_and_tokenizer(config)
 """
 
+import os
+
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, AutoModelForSequenceClassification
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training, TaskType, PeftModel
 
 
 def get_bnb_config():
@@ -87,8 +89,6 @@ def load_model_and_tokenizer(cfg: dict, for_training: bool = True):
 
 def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
     """Load a fine-tuned LoRA model from a checkpoint (local path only)."""
-    import os
-    from peft import PeftModel
 
     # Resolve to absolute path so PEFT loads from disk, not Hub
     path = os.path.abspath(os.path.expanduser(checkpoint_path))
@@ -116,10 +116,38 @@ def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
     )
     # Must be called before loading PEFT adapters so gradients flow through
     # the 4-bit base layers correctly during any subsequent training.
-    model = prepare_model_for_kbit_training(model)
+    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=cfg.get("use_gradient_checkpointing", True))
     # is_trainable=True keeps adapters in training mode and casts them to float16
     # so the GradScaler fp16 hooks fire correctly during GRPO training.
     model = PeftModel.from_pretrained(model, path, is_trainable=True)
     model.eval()
 
     return model, tokenizer
+
+def load_value_model(cfg: dict) -> torch.nn.Module:
+    model_name = cfg["model"]["name"]
+    base_model_name = cfg["model"].get("base_name", model_name)  # use base
+    use_quant = cfg["model"].get("quantization") == "4bit"
+
+    model_kwargs = {"trust_remote_code": True, "torch_dtype": torch.float16, "num_labels": 1}
+    if use_quant:
+        model_kwargs["quantization_config"] = get_bnb_config()
+    model_kwargs["device_map"] = "auto"
+
+    model = AutoModelForSequenceClassification.from_pretrained(base_model_name, **model_kwargs)
+    model.config.pad_token_id = model.config.eos_token_id
+
+    if use_quant:
+        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
+
+    lora_cfg = cfg["model"]["lora"]
+    lora_config = LoraConfig(
+        r=lora_cfg["r"],
+        lora_alpha=lora_cfg["lora_alpha"],
+        lora_dropout=lora_cfg["lora_dropout"],
+        target_modules=lora_cfg["target_modules"],
+        task_type=TaskType.SEQ_CLS,
+        bias="none",
+    )
+    model = get_peft_model(model, lora_config)
+    return model
