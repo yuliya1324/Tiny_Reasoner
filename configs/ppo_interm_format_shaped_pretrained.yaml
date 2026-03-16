@@ -31,7 +31,7 @@ training:
 model:
   checkpoint: "results/sft_baseline/final"
 
-output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/interm_format_shaped_pretrained"
-experiment_name: interm_format_shaped_pretrained
+output_dir: "results/interm_calc_pretrained"
+experiment_name: interm_calc_pretrained
 
 use_gradient_checkpointing;: false

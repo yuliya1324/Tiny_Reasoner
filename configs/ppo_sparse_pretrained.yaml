@@ -30,7 +30,7 @@ training:
 model:
   checkpoint: "results/sft_baseline/final"
 
-output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/ppo_sparse_pretrained_final_reward"
+output_dir: "results/ppo_sparse_pretrained_final_reward"
 experiment_name: ppo_sparse_pretrained
 
 use_gradient_checkpointing;: false

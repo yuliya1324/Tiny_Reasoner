@@ -27,4 +27,4 @@ generation:
   do_sample: true
 
 seed: 42
-output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results"
+output_dir: "results"
