@@ -86,11 +86,7 @@ def load_model_and_tokenizer(cfg: dict, for_training: bool = True):
 
 
 def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
-    """Load a fine-tuned LoRA model from a checkpoint (local path only)."""
-    import os
-    from peft import PeftModel
-
-    path = os.path.abspath(os.path.expanduser(checkpoint_path))
+    """Load a fine-tuned LoRA model from a checkpoint."""
 
     model_name = cfg["model"]["name"]
     tokenizer = load_tokenizer(model_name)
@@ -102,8 +98,8 @@ def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
         torch_dtype=torch.float16,
         trust_remote_code=True,
     )
-    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
-    model = PeftModel.from_pretrained(model, path, is_trainable=True)
+    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=cfg["training"].get("use_gradient_checkpointing", True))
+    model = PeftModel.from_pretrained(model, checkpoint_path, is_trainable=True)
     model.eval()
 
     return model, tokenizer

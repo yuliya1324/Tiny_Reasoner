@@ -3,6 +3,8 @@ training:
   method: "ppo"
   reward: "sparse"
 
+  use_gradient_checkpointing;: false
+
   num_epochs: 3
   per_device_batch_size: 1
   gradient_accumulation_steps: 16
@@ -30,5 +32,5 @@ training:
 model:
   checkpoint: "results/sft_baseline/final"
 
-output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/ppo_sparse_pretrained_full_reward"
+output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/ppo_sparse_pretrained_final_reward"
 experiment_name: ppo_sparse_pretrained
