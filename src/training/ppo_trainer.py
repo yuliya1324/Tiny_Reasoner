@@ -5,10 +5,9 @@ Uses TRL's PPOTrainer with a reference model and rule-based reward function.
 import torch
 from trl.experimental.ppo import PPOConfig, PPOTrainer
 
-from src.models.loader import load_model_from_checkpoint, load_value_model, add_new_adapter
+from src.models.loader import load_model_from_checkpoint, load_value_model
 from src.utils.data_utils import prepare_ppo_dataset_with_gt
 from src.rewards.reward_module import RuleBasedRewardWrapper
-from src.training.custom_ppo_trainer import GroundTruthPPOTrainer
 
 
 def train_ppo(cfg: dict):
@@ -24,8 +23,6 @@ def train_ppo(cfg: dict):
     # Load policy model + tokenizer
     model, tokenizer = load_model_from_checkpoint(cfg["model"]["checkpoint"], cfg)
     tokenizer.padding_side = "left"
-    
-    model = add_new_adapter(model, cfg, "ppo_adapter")
     model.train()
 
     # Load value and ref models

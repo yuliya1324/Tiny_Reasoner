@@ -58,25 +58,26 @@ def load_model_and_tokenizer(cfg: dict, for_training: bool = True):
     """
     model_name = cfg["model"]["name"]
     use_quant = cfg["model"].get("quantization") == "4bit"
-    base_model_name = cfg["model"].get("base_name", model_name)
 
-    tokenizer = load_tokenizer(base_model_name)
+    # Load tokenizer
+    tokenizer = load_tokenizer(model_name)
 
-    model_kwargs = {"trust_remote_code": True, "torch_dtype": torch.bfloat16}
+    # Load model
+    model_kwargs = {
+        "trust_remote_code": True,
+        "torch_dtype": torch.float16,
+    }
     if use_quant:
         model_kwargs["quantization_config"] = get_bnb_config()
-    model_kwargs["device_map"] = "auto"
+        model_kwargs["device_map"] = "auto"
+    else:
+        model_kwargs["device_map"] = "auto"
 
-    model = AutoModelForCausalLM.from_pretrained(base_model_name, **model_kwargs)
-
-    # If model_name != base_name, it's a LoRA checkpoint — load adapter
-    if model_name != base_model_name:
-        from peft import PeftModel
-        model = PeftModel.from_pretrained(model, model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
 
     if for_training:
         if use_quant:
-            model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
+            model = prepare_model_for_kbit_training(model)
         lora_config = get_lora_config(cfg)
         model = get_peft_model(model, lora_config)
         model.print_trainable_parameters()
@@ -84,63 +85,35 @@ def load_model_and_tokenizer(cfg: dict, for_training: bool = True):
     return model, tokenizer
 
 
-def load_model_from_checkpoint(checkpoint_path: str, cfg: dict, peft: bool = True):
-    """Load a fine-tuned LoRA model from a checkpoint."""
+def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
+    """Load a fine-tuned LoRA model from a checkpoint (local path only)."""
+    import os
+    from peft import PeftModel
+
+    path = os.path.abspath(os.path.expanduser(checkpoint_path))
+
     model_name = cfg["model"]["name"]
-    base_model_name = cfg["model"].get("base_name", model_name)
+    tokenizer = load_tokenizer(model_name)
 
-    tokenizer = load_tokenizer(base_model_name)
-
-    if peft:
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            # quantization_config=get_bnb_config(),
-            device_map="auto",
-            torch_dtype=torch.bfloat16,      
-            trust_remote_code=True,
-        )
-        model = PeftModel.from_pretrained(model, checkpoint_path)
-    else:
-        model = AutoModelForCausalLM.from_pretrained(
-            checkpoint_path,
-            device_map="auto",
-            torch_dtype=torch.bfloat16,
-            trust_remote_code=True,
-        )
-    model.config.pad_token_id = model.config.eos_token_id
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        quantization_config=get_bnb_config(),
+        device_map="auto",
+        torch_dtype=torch.float16,
+        trust_remote_code=True,
+    )
+    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
+    model = PeftModel.from_pretrained(model, path, is_trainable=True)
     model.eval()
+
     return model, tokenizer
-
-def add_new_adapter(model, cfg, adapter_name):
-    """ Add a new adapter on top of the model. Keep
-    default adapter and freeze it.
-    """
-    lora_config = get_lora_config(cfg)
-    model.add_adapter(adapter_name, lora_config)
-    model.base_model.set_adapter(["default", adapter_name])
-    for name, param in model.named_parameters():
-        if "lora_" in name and ".default." in name:
-            param.requires_grad = False    
-    model.print_trainable_parameters()
-    return model
-
-def load_adapters(model, checkpoint, adapters):
-    """ Load non-default adapters
-    """
-    for adapter in adapters:
-        model.load_adapter(
-            checkpoint,
-            adapter_name=adapter
-        )
-    model.base_model.set_adapter(["default"] + adapters)
-    return model
 
 def load_value_model(cfg: dict) -> torch.nn.Module:
     model_name = cfg["model"]["name"]
     base_model_name = cfg["model"].get("base_name", model_name)  # use base
     use_quant = cfg["model"].get("quantization") == "4bit"
 
-    model_kwargs = {"trust_remote_code": True, "torch_dtype": torch.bfloat16, "num_labels": 1}
+    model_kwargs = {"trust_remote_code": True, "torch_dtype": torch.float16, "num_labels": 1}
     if use_quant:
         model_kwargs["quantization_config"] = get_bnb_config()
     model_kwargs["device_map"] = "auto"
@@ -149,7 +122,7 @@ def load_value_model(cfg: dict) -> torch.nn.Module:
     model.config.pad_token_id = model.config.eos_token_id
 
     if use_quant:
-        model = prepare_model_for_kbit_training(model)
+        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
 
     lora_cfg = cfg["model"]["lora"]
     lora_config = LoraConfig(

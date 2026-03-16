@@ -1,7 +1,7 @@
 # SFT Baseline — inherits from base.yaml
 training:
   method: "ppo"
-  reward: "format_shaped"
+  reward: "intermediate_calc"
 
   num_epochs: 3
   per_device_batch_size: 1
@@ -25,11 +25,11 @@ training:
   gamma: 1.
   kl_coef: 0.1
   reward_kwargs:
-    format_bonus: .2
-    reward: 1.
+    format_reward: .2
+    calc_reward: 0.5
 
 model:
   checkpoint: "results/sft_baseline/final"
 
-output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/ppo_format_shaped_pretrained_full_reward"
-experiment_name: ppo_format_shaped_pretrained_full_reward
+output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/interm_format_shaped_pretrained"
+experiment_name: interm_format_shaped_pretrained
