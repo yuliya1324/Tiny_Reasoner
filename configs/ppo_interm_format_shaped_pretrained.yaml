@@ -3,8 +3,6 @@ training:
   method: "ppo"
   reward: "intermediate_calc"
 
-  use_gradient_checkpointing;: false
-
   num_epochs: 3
   per_device_batch_size: 1
   gradient_accumulation_steps: 16
@@ -35,3 +33,5 @@ model:
 
 output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/interm_format_shaped_pretrained"
 experiment_name: interm_format_shaped_pretrained
+
+use_gradient_checkpointing;: false

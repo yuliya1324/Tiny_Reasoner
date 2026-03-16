@@ -98,7 +98,8 @@ def load_model_from_checkpoint(checkpoint_path: str, cfg: dict):
         torch_dtype=torch.float16,
         trust_remote_code=True,
     )
-    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=cfg["training"].get("use_gradient_checkpointing", True))
+
+    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=cfg.get("use_gradient_checkpointing", True))
     model = PeftModel.from_pretrained(model, checkpoint_path, is_trainable=True)
     model.eval()
 

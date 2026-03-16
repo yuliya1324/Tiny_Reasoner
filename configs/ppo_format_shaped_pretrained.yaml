@@ -3,8 +3,6 @@ training:
   method: "ppo"
   reward: "format_shaped"
 
-  use_gradient_checkpointing;: false
-
   num_epochs: 3
   per_device_batch_size: 1
   gradient_accumulation_steps: 16
@@ -35,3 +33,5 @@ model:
 
 output_dir: "/Data/joao.giordani-donasolo/Tiny_Reasoner/results/ppo_format_shaped_pretrained_full_reward"
 experiment_name: ppo_format_shaped_pretrained_full_reward
+
+use_gradient_checkpointing;: false
