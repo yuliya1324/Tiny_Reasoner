@@ -12,7 +12,7 @@ from src.utils.math_verify import (
 )
 
 
-def sparse_reward(response: str, ground_truth: str, reward: float = 1.) -> float:
+def sparse_reward(response: str, ground_truth: str) -> float:
     """
     Sparse binary reward.
     reward = 1.0 if final answer is correct, 0.0 otherwise.
